@@ -7,7 +7,6 @@ import fr.rgary.learningcar.machinelearning.NeuralNetwork;
 import fr.rgary.learningcar.tracks.Track;
 import fr.rgary.learningcar.trigonometry.Line;
 import fr.rgary.learningcar.trigonometry.Point;
-import fr.rgary.learningcar.trigonometry.Zone;
 import org.ejml.data.DMatrixRMaj;
 import org.ejml.dense.row.RandomMatrices_DDRM;
 import org.slf4j.Logger;
@@ -30,35 +29,47 @@ import static fr.rgary.learningcar.base.Constant.TRACK;
  */
 public class Car implements Comparable<Car> {
     public static final Logger LOGGER = LoggerFactory.getLogger(Car.class);
-
+    public static int maxNumber = 0;
     public DMatrixRMaj theta1 = new DMatrixRMaj(FIRST_HIDDEN_LAYER_SIZE, INPUT_LAYER_SIZE + 1);
     public DMatrixRMaj theta2 = new DMatrixRMaj(SECOND_HIDDEN_LAYER_SIZE, FIRST_HIDDEN_LAYER_SIZE + 1);
     public DMatrixRMaj theta3 = new DMatrixRMaj(NUM_LABEL, SECOND_HIDDEN_LAYER_SIZE + 1);
-    public List<DMatrixRMaj> allThetas = new ArrayList<>(Arrays.asList(theta1, theta2, theta3));
-
+    public List<DMatrixRMaj> allThetas;
     public int sensorRange = 800;
     public List<Double> sensorDistances = new ArrayList<>(Arrays.asList(10000d, 10000d, 10000d, 10000d));
     public Point[] sensorIntersectPoints = new Point[]{null, null, null, null};
-
     public Point startPoint;
     public Point position;
     public double rotation = 0;
-
     public boolean active = true;
     public int moveStep = 5;
     public int defaultMaxMoveAllowed = 5000;
     public int moveDone = 0;
     public int maxZoneEntered = -1;
-
     public double rotationRate = Math.PI / 48;
     public double innerSensorRotation = Math.PI / 12;
     public double outerSensorRotation = Math.PI / 6;
-
     public float fitnessValue = -1;
-
     public int number;
 
-    public static int maxNumber = 0;
+    public Car() {
+        this.number = getMaxNumberAndIncrement();
+        this.startPoint = Track.instance.startPoint;
+        this.position = this.startPoint.clone();
+        RandomMatrices_DDRM.addUniform(this.theta1, -1, 1, RANDOM);
+        RandomMatrices_DDRM.addUniform(this.theta2, -1, 1, RANDOM);
+        RandomMatrices_DDRM.addUniform(this.theta3, -1, 1, RANDOM);
+        this.allThetas = new ArrayList<>(Arrays.asList(this.theta1, this.theta2, this.theta3));
+    }
+
+    public Car(Car o) {
+        this.number = getMaxNumberAndIncrement();
+        this.startPoint = Track.instance.startPoint;
+        this.position = this.startPoint.clone();
+        this.theta1 = new DMatrixRMaj(o.theta1);
+        this.theta2 = new DMatrixRMaj(o.theta2);
+        this.theta3 = new DMatrixRMaj(o.theta3);
+        this.allThetas = new ArrayList<>(Arrays.asList(this.theta1, this.theta2, this.theta3));
+    }
 
     public synchronized int getMaxNumberAndIncrement() {
         Car.maxNumber += 1;
@@ -69,30 +80,12 @@ public class Car implements Comparable<Car> {
         this.number = getMaxNumberAndIncrement();
     }
 
-    public Car() {
-        this.number = getMaxNumberAndIncrement();
-        this.startPoint = Track.instance.startPoint;
-        this.position = this.startPoint.clone();
-        RandomMatrices_DDRM.addUniform(theta1, -1, 1, RANDOM);
-        RandomMatrices_DDRM.addUniform(theta2, -1, 1, RANDOM);
-        RandomMatrices_DDRM.addUniform(theta3, -1, 1, RANDOM);
-    }
-
     public void reset() {
         this.position = TRACK.startPoint;
         this.rotation = 0;
         this.active = true;
         this.moveDone = 0;
         this.maxZoneEntered = -1;
-    }
-
-    public Car(Car o) {
-        this.number = getMaxNumberAndIncrement();
-        this.startPoint = Track.instance.startPoint;
-        this.position = this.startPoint.clone();
-        this.theta1 = new DMatrixRMaj(o.theta1);
-        this.theta2 = new DMatrixRMaj(o.theta2);
-        this.theta3 = new DMatrixRMaj(o.theta3);
     }
 
     public void moveMe() {

@@ -6,22 +6,38 @@ package fr.rgary.learningcar.display;
 import fr.rgary.learningcar.Processor;
 import fr.rgary.learningcar.base.Constant;
 import fr.rgary.learningcar.tracks.JsonToTrack;
+import fr.rgary.learningcar.trigonometry.Line;
+import fr.rgary.learningcar.trigonometry.Point;
+import org.lwjgl.BufferUtils;
 import org.lwjgl.glfw.GLFWErrorCallback;
+import org.lwjgl.glfw.GLFWMouseButtonCallback;
 import org.lwjgl.glfw.GLFWVidMode;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.system.MemoryStack;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.nio.DoubleBuffer;
 import java.nio.FloatBuffer;
 import java.util.Objects;
 
 import static fr.rgary.learningcar.Processor.GENERATION;
 import static fr.rgary.learningcar.base.Constant.INTER_FRAME_DELAY;
+import static fr.rgary.learningcar.display.Draw.GLOBAL_HORIZONTAL_DISPLACEMENT;
+import static fr.rgary.learningcar.display.Draw.GLOBAL_VERTICAL_DISPLACEMENT;
+import static fr.rgary.learningcar.display.Draw.STATIC_ELEM;
 import static org.lwjgl.glfw.GLFW.GLFW_FALSE;
 import static org.lwjgl.glfw.GLFW.GLFW_KEY_D;
+import static org.lwjgl.glfw.GLFW.GLFW_KEY_DOWN;
 import static org.lwjgl.glfw.GLFW.GLFW_KEY_ESCAPE;
+import static org.lwjgl.glfw.GLFW.GLFW_KEY_LEFT;
 import static org.lwjgl.glfw.GLFW.GLFW_KEY_P;
 import static org.lwjgl.glfw.GLFW.GLFW_KEY_Q;
+import static org.lwjgl.glfw.GLFW.GLFW_KEY_RIGHT;
+import static org.lwjgl.glfw.GLFW.GLFW_KEY_UP;
+import static org.lwjgl.glfw.GLFW.GLFW_MOUSE_BUTTON_1;
 import static org.lwjgl.glfw.GLFW.GLFW_OPENGL_DEBUG_CONTEXT;
+import static org.lwjgl.glfw.GLFW.GLFW_PRESS;
 import static org.lwjgl.glfw.GLFW.GLFW_RELEASE;
 import static org.lwjgl.glfw.GLFW.GLFW_REPEAT;
 import static org.lwjgl.glfw.GLFW.GLFW_RESIZABLE;
@@ -29,6 +45,7 @@ import static org.lwjgl.glfw.GLFW.GLFW_TRUE;
 import static org.lwjgl.glfw.GLFW.GLFW_VISIBLE;
 import static org.lwjgl.glfw.GLFW.glfwCreateWindow;
 import static org.lwjgl.glfw.GLFW.glfwDefaultWindowHints;
+import static org.lwjgl.glfw.GLFW.glfwGetCursorPos;
 import static org.lwjgl.glfw.GLFW.glfwGetMonitorContentScale;
 import static org.lwjgl.glfw.GLFW.glfwGetPrimaryMonitor;
 import static org.lwjgl.glfw.GLFW.glfwGetVideoMode;
@@ -36,6 +53,7 @@ import static org.lwjgl.glfw.GLFW.glfwInit;
 import static org.lwjgl.glfw.GLFW.glfwMakeContextCurrent;
 import static org.lwjgl.glfw.GLFW.glfwPollEvents;
 import static org.lwjgl.glfw.GLFW.glfwSetKeyCallback;
+import static org.lwjgl.glfw.GLFW.glfwSetMouseButtonCallback;
 import static org.lwjgl.glfw.GLFW.glfwSetWindowPos;
 import static org.lwjgl.glfw.GLFW.glfwSetWindowShouldClose;
 import static org.lwjgl.glfw.GLFW.glfwSetWindowSizeCallback;
@@ -62,6 +80,7 @@ import static org.lwjgl.system.MemoryUtil.NULL;
  * Class Display.
  */
 public class Display {
+    private static final Logger LOGGER = LoggerFactory.getLogger(Display.class);
 
     public static final int WIDTH = 800;
     public static final int HEIGHT = 1200;
@@ -80,11 +99,6 @@ public class Display {
 
 
     private void loop() {
-//        try {
-//            Display.FONT = new Font("src/main/resources/times.ttf", 16f);
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//        }
 
         // Set the clear color
         glClearColor(0.99f, 0.99f, 0.99f, 1.0f);
@@ -119,10 +133,9 @@ public class Display {
                 frames = 0;
             }
 
-            Draw.drawAnyText(String.format("%dFPS",prevSecFPS), 15, 45);
-
-            Draw.drawAnyText(String.format("%d GEN",GENERATION), 15, 15);
-            Draw.drawAnyText(String.format("%d ACTIVE",processor.activeCarCount), 15, 30);
+            Draw.drawAnyText(String.format("%dFPS",prevSecFPS), 15, 45, STATIC_ELEM);
+            Draw.drawAnyText(String.format("%d GEN",GENERATION), 15, 15, STATIC_ELEM);
+            Draw.drawAnyText(String.format("%d ACTIVE",processor.activeCarCount), 15, 30, STATIC_ELEM);
 
             glfwSwapBuffers(window); // swap the color buffers
 
@@ -208,9 +221,54 @@ public class Display {
                         break;
                     case GLFW_KEY_P:
                         Constant.PAUSE = !Constant.PAUSE;
+                        break;
+                    case GLFW_KEY_UP:
+                        Draw.GLOBAL_VERTICAL_DISPLACEMENT -= 10;
+                        break;
+                    case GLFW_KEY_DOWN:
+                        Draw.GLOBAL_VERTICAL_DISPLACEMENT += 10;
+                        break;
+                    case GLFW_KEY_LEFT:
+                        Draw.GLOBAL_HORIZONTAL_DISPLACEMENT -= 10;
+                        break;
+                    case GLFW_KEY_RIGHT:
+                        Draw.GLOBAL_HORIZONTAL_DISPLACEMENT += 10;
+                        break;
                 }
             }
             if (action == GLFW_REPEAT) {
+            }
+        });
+        glfwSetMouseButtonCallback(window, (window, button, action, mods) -> {
+
+            Color drawingColor = new Color(255, 165, 0);
+
+            if (action == GLFW_PRESS) {
+                DoubleBuffer b1 = BufferUtils.createDoubleBuffer(1);
+                DoubleBuffer b2 = BufferUtils.createDoubleBuffer(1);
+                glfwGetCursorPos(window, b1, b2);
+                int x = (int) b1.get(0) - (GLOBAL_HORIZONTAL_DISPLACEMENT * 1);
+                int y = (int) b2.get(0) - (GLOBAL_VERTICAL_DISPLACEMENT * 1);
+                LOGGER.info("PRESSED: x : " + x + ", y = " + y);
+                if (drawingClass.start == null)
+                    drawingClass.start = new Point(x, y);
+            }
+            if (action == GLFW_RELEASE) {
+                DoubleBuffer b1 = BufferUtils.createDoubleBuffer(1);
+                DoubleBuffer b2 = BufferUtils.createDoubleBuffer(1);
+                glfwGetCursorPos(window, b1, b2);
+                int x = (int) b1.get(0) - (GLOBAL_HORIZONTAL_DISPLACEMENT * 1);
+                int y = (int) b2.get(0) - (GLOBAL_VERTICAL_DISPLACEMENT * 1);
+                LOGGER.info("PRESSED: x : " + x + ", y = " + y);
+                drawingClass.end = new Point(x, y);
+                Draw.drawnLines.add(new Line(drawingClass.start, drawingClass.end, drawingColor));
+                drawingClass.start = drawingClass.end;
+            }
+            if (action == GLFW_MOUSE_BUTTON_1) {
+                DoubleBuffer b1 = BufferUtils.createDoubleBuffer(1);
+                DoubleBuffer b2 = BufferUtils.createDoubleBuffer(1);
+                glfwGetCursorPos(window, b1, b2);
+                LOGGER.info("x : " + b1.get(0) + ", y = " + b2.get(0));
             }
         });
     }
@@ -221,6 +279,11 @@ public class Display {
         glLoadIdentity();
         glOrtho(0.0, WIDTH, HEIGHT, 0.0, -1.0, 1.0);
         glMatrixMode(GL_MODELVIEW);
+    }
+
+    static class drawingClass {
+        public static Point start = null;
+        public static Point end = null;
     }
 
 }

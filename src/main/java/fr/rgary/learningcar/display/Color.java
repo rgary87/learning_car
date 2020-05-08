@@ -21,4 +21,11 @@ public class Color {
         B = b;
         A = a;
     }
+
+    public Color(final int r, final int g, final int b) {
+        R = r / 255d;
+        G = g / 255d;
+        B = b / 255d;
+    }
+
 }

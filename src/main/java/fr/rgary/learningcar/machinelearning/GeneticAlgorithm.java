@@ -1,23 +1,16 @@
 package fr.rgary.learningcar.machinelearning;
 
-import com.sun.org.apache.bcel.internal.generic.POP;
 import fr.rgary.learningcar.Car;
 import fr.rgary.learningcar.Processor;
-import fr.rgary.learningcar.base.Constant;
 import fr.rgary.learningcar.base.PrintUtil;
-import fr.rgary.learningcar.tracks.Track;
-import fr.rgary.learningcar.trigonometry.Zone;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
-import java.util.TreeSet;
 
 import static fr.rgary.learningcar.Processor.POPULATION;
-import static fr.rgary.learningcar.Processor.toSelect;
 import static fr.rgary.learningcar.base.Constant.MUTATE_CHANGE;
 import static fr.rgary.learningcar.base.Constant.MUTATE_INDIVIDUAL_CHANGE;
 import static fr.rgary.learningcar.base.Constant.RANDOM;
@@ -27,20 +20,13 @@ import static fr.rgary.learningcar.base.Constant.RANDOM;
  */
 public class GeneticAlgorithm {
     private static final Logger LOGGER = LoggerFactory.getLogger(GeneticAlgorithm.class);
-    //    public List<Car> POPULATION ; // = POPULATION;
-//    public int population_size ; // = population_size;
-//    public int selection_size; // = selection_size;
-//    public int lucky_few_size; // = lucky_few_size;
-//    public int mutation_chance; // = mutation_chance;
-//    public int mutation_rate; // = mutation_rate;
-//    public int to_breed; // = population_size - selection_size - lucky_few_size - 1 - to_regenerate;
-//    public int to_regenerate; // = to_regenerate;
-//    public List<Zone> polygons; // = polygon_zones;
 
     public static long totalBreedTime = 0;
     public static long totalMutateTime = 0;
 
     public static float prevBestFit = -1;
+
+    private static Car best;
 
     public GeneticAlgorithm() {
 //        this.polygons = Track.instance.zones;
@@ -50,14 +36,15 @@ public class GeneticAlgorithm {
         POPULATION.parallelStream().forEach(Fitness::calcFitness);
         Collections.sort(POPULATION);
         PrintUtil.logPopulationNumberAndFitnessAsTable(POPULATION);
-        if (POPULATION.get(0).fitnessValue < prevBestFit) {
+        best = POPULATION.get(0);
+        if (best.fitnessValue < prevBestFit) {
             LOGGER.info("What ? ");
         }
-        prevBestFit = POPULATION.get(0).fitnessValue;
+        prevBestFit = best.fitnessValue;
         List<Car> localPopulation = new ArrayList<>();
         selection(localPopulation);
         mutateAll(localPopulation);
-        localPopulation.add(0, POPULATION.get(0));
+        localPopulation.add(0, best);
         POPULATION = new ArrayList<>(localPopulation);
         POPULATION.forEach(Car::reset);
     }
@@ -92,10 +79,13 @@ public class GeneticAlgorithm {
             localPopulation.add(new Car(selectBasedOnFitness(fitnessTotal)));
         }
         while (localPopulation.size() < POPULATION.size() - 1) {
-//            Car firstParent = selectBasedOnFitness(fitnessTotal);
-//            Car secondParent = selectBasedOnFitness(fitnessTotal);
-            Car firstParent = POPULATION.get(RANDOM.nextInt(POPULATION.size()));
-            Car secondParent = POPULATION.get(RANDOM.nextInt(POPULATION.size()));
+            int i = RANDOM.nextInt(POPULATION.size());
+            int j = RANDOM.nextInt(POPULATION.size());
+            while (j == i) {
+                j = RANDOM.nextInt(POPULATION.size());
+            }
+            Car firstParent = POPULATION.get(i);
+            Car secondParent = POPULATION.get(j);
 
             Car child = breedChild(firstParent, secondParent);
             localPopulation.add(child);
@@ -125,6 +115,5 @@ public class GeneticAlgorithm {
                 }
             }
         }
-//        LOGGER.info("MUTATED {} TIMES OVER {}!", m, m + no_m);
     }
 }

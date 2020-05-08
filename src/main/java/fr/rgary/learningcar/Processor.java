@@ -16,7 +16,7 @@ public class Processor {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Processor.class);
     public static List<Car> POPULATION;
-    private static int populationSize = 80;
+    private static int populationSize = 180;
     public static int toSelect = populationSize / 3 * 2;
     public Boolean activeCar = true;
     public int activeCarCount = 0;
@@ -40,7 +40,9 @@ public class Processor {
             GeneticAlgorithm.natureIsBeautiful();
             POPULATION.parallelStream().forEach(Car::reset);
             activeCar = true;
-            LOGGER.warn("TOTAL TOOK {}ms. {}ms in breed. {}ms in mutate.", System.nanoTime() - start, GeneticAlgorithm.totalBreedTime, GeneticAlgorithm.totalMutateTime);
+            LOGGER.warn("TOTAL TOOK {}ms. {}ms in breed. {}ms in mutate.", (System.nanoTime() - start) / 1_000_000f, GeneticAlgorithm.totalBreedTime / 1_000_000f, GeneticAlgorithm.totalMutateTime / 1_000_000f);
+            GeneticAlgorithm.totalBreedTime = 0;
+            GeneticAlgorithm.totalMutateTime = 0;
             GENERATION++;
         }
 
