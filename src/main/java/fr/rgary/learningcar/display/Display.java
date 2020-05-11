@@ -244,33 +244,33 @@ public class Display {
             Color drawingColor = new Color(255, 165, 0);
 
             if (action == GLFW_PRESS) {
-                DoubleBuffer b1 = BufferUtils.createDoubleBuffer(1);
-                DoubleBuffer b2 = BufferUtils.createDoubleBuffer(1);
-                glfwGetCursorPos(window, b1, b2);
-                int x = (int) b1.get(0) - (GLOBAL_HORIZONTAL_DISPLACEMENT * 1);
-                int y = (int) b2.get(0) - (GLOBAL_VERTICAL_DISPLACEMENT * 1);
-                LOGGER.info("PRESSED: x : " + x + ", y = " + y);
+                Point mousePos = getMousePoint();
                 if (drawingClass.start == null)
-                    drawingClass.start = new Point(x, y);
+                    drawingClass.start = mousePos;
             }
             if (action == GLFW_RELEASE) {
-                DoubleBuffer b1 = BufferUtils.createDoubleBuffer(1);
-                DoubleBuffer b2 = BufferUtils.createDoubleBuffer(1);
-                glfwGetCursorPos(window, b1, b2);
-                int x = (int) b1.get(0) - (GLOBAL_HORIZONTAL_DISPLACEMENT * 1);
-                int y = (int) b2.get(0) - (GLOBAL_VERTICAL_DISPLACEMENT * 1);
-                LOGGER.info("PRESSED: x : " + x + ", y = " + y);
-                drawingClass.end = new Point(x, y);
+                drawingClass.end = getMousePoint();
                 Draw.drawnLines.add(new Line(drawingClass.start, drawingClass.end, drawingColor));
+                getRotationFromPoints(drawingClass.start, drawingClass.end);
                 drawingClass.start = drawingClass.end;
             }
             if (action == GLFW_MOUSE_BUTTON_1) {
                 DoubleBuffer b1 = BufferUtils.createDoubleBuffer(1);
                 DoubleBuffer b2 = BufferUtils.createDoubleBuffer(1);
                 glfwGetCursorPos(window, b1, b2);
-                LOGGER.info("x : " + b1.get(0) + ", y = " + b2.get(0));
+//                LOGGER.info("x : " + b1.get(0) + ", y = " + b2.get(0));
             }
         });
+    }
+
+    private Point getMousePoint() {
+        DoubleBuffer b1 = BufferUtils.createDoubleBuffer(1);
+        DoubleBuffer b2 = BufferUtils.createDoubleBuffer(1);
+        glfwGetCursorPos(window, b1, b2);
+        int x = (int) b1.get(0) - (GLOBAL_HORIZONTAL_DISPLACEMENT * 1);
+        int y = (int) b2.get(0) - (GLOBAL_VERTICAL_DISPLACEMENT * 1);
+//        LOGGER.info("PRESSED: x : " + x + ", y = " + y);
+        return new Point(x, y);
     }
 
 
@@ -284,6 +284,72 @@ public class Display {
     static class drawingClass {
         public static Point start = null;
         public static Point end = null;
+    }
+
+    public double getRotationFromPoints(Point b, Point c) {
+
+        LOGGER.info("B: {}, {}", b.X, b.Y);
+        LOGGER.info("C: {}, {}", c.X, c.Y);
+
+        // Vertical line
+        if (b.X == c.X) {
+            if (b.Y > c.Y) {
+                LOGGER.info("Going up");
+                return 1 * Math.PI;
+            } else {
+                LOGGER.info("Going down");
+                return 0 * Math.PI;
+            }
+        }
+        // Horizontal line
+        if (b.Y == c.Y) {
+            if (b.X > c.X) {
+                LOGGER.info("Going left");
+                return 1.5 * Math.PI;
+            } else {
+                LOGGER.info("Going right");
+                return 0.5 * Math.PI;
+            }
+        }
+
+        Point a;
+        double angleRadianB;
+        // Going up and right (1)
+        if (c.X > b.X && c.Y < b.Y) {
+            LOGGER.info("Going up and right");
+            a = new Point(c.X, b.Y);
+            angleRadianB = Math.atan((double) (a.Y - c.Y) / (double) (a.X - b.X));
+            angleRadianB += 0.5 * Math.PI;
+            LOGGER.info("Degrees : {}", angleRadianB * (180/Math.PI));
+        }
+        else
+        //Going up and left (3)
+        if (c.X < b.X && c.Y < b.Y) {
+            LOGGER.info("Going up and left");
+            a = new Point(c.X, b.Y);
+            angleRadianB = Math.atan((double) (a.Y - c.Y) / (double) (b.X - a.X));
+            angleRadianB += 1 * Math.PI;
+            LOGGER.info("Degrees : {}", angleRadianB * (180/Math.PI));
+        }
+        else
+        //Going down and right (7)
+        if (c.X > b.X && c.Y > b.Y) {
+            LOGGER.info("Going down and right");
+            a = new Point(b.X, c.Y);
+            angleRadianB = Math.atan((double) (c.X - a.X) / (double) (a.Y - b.Y));
+            angleRadianB += 0 * Math.PI;
+            LOGGER.info("Degrees : {}", angleRadianB * (180/Math.PI));
+        }
+        else
+        //Going down and left (5)
+        {
+            LOGGER.info("Going down and left");
+            a = new Point(b.X, c.Y);
+            angleRadianB = Math.atan((double) (a.X - c.X) / (double) (a.Y - b.Y));
+            angleRadianB += 1.5 * Math.PI;
+            LOGGER.info("Degrees : {}", angleRadianB * (180/Math.PI));
+        }
+        return angleRadianB;
     }
 
 }
