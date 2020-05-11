@@ -23,6 +23,7 @@ import java.util.Objects;
 
 import static fr.rgary.learningcar.Processor.GENERATION;
 import static fr.rgary.learningcar.base.Constant.INTER_FRAME_DELAY;
+import static fr.rgary.learningcar.base.Constant.TRACK;
 import static fr.rgary.learningcar.display.Draw.GLOBAL_HORIZONTAL_DISPLACEMENT;
 import static fr.rgary.learningcar.display.Draw.GLOBAL_VERTICAL_DISPLACEMENT;
 import static fr.rgary.learningcar.display.Draw.STATIC_ELEM;
@@ -223,10 +224,10 @@ public class Display {
                         Constant.PAUSE = !Constant.PAUSE;
                         break;
                     case GLFW_KEY_UP:
-                        Draw.GLOBAL_VERTICAL_DISPLACEMENT -= 10;
+                        Draw.GLOBAL_VERTICAL_DISPLACEMENT += 10;
                         break;
                     case GLFW_KEY_DOWN:
-                        Draw.GLOBAL_VERTICAL_DISPLACEMENT += 10;
+                        Draw.GLOBAL_VERTICAL_DISPLACEMENT -= 10;
                         break;
                     case GLFW_KEY_LEFT:
                         Draw.GLOBAL_HORIZONTAL_DISPLACEMENT -= 10;
@@ -242,23 +243,52 @@ public class Display {
         glfwSetMouseButtonCallback(window, (window, button, action, mods) -> {
 
             Color drawingColor = new Color(255, 165, 0);
+            double rot = 0;
+            Point directionVector = null;
 
             if (action == GLFW_PRESS) {
+                LOGGER.info("mouse pressed");
                 Point mousePos = getMousePoint();
                 if (drawingClass.start == null)
                     drawingClass.start = mousePos;
             }
             if (action == GLFW_RELEASE) {
+                LOGGER.info("mouse release");
                 drawingClass.end = getMousePoint();
                 Draw.drawnLines.add(new Line(drawingClass.start, drawingClass.end, drawingColor));
-                getRotationFromPoints(drawingClass.start, drawingClass.end);
+
+                directionVector = getTwoPointDirectionVector(drawingClass.start, drawingClass.end);
+
+                LOGGER.info("Adding line");
+                Point leftBorderNewEnd;
+                Point rightBorderNewEnd;
+                int s = TRACK.borderTwo.size() - 1;
+                int t = TRACK.borderOne.size() - 1;
+
+                double abDist = Math.hypot((double) drawingClass.end.X - drawingClass.start.X, (double) drawingClass.end.Y - drawingClass.start.Y);
+
+                double bcDist = 50;
+                double acDist = Math.sqrt(Math.pow(abDist, 2) + Math.pow(bcDist, 2));
+                leftBorderNewEnd = new Point(
+                        (int) (drawingClass.start.X + (directionVector.X * (acDist / abDist))),
+                        (int) (drawingClass.start.Y + (directionVector.Y * (acDist / abDist))));
+
+                rightBorderNewEnd = new Point(
+                        (int) (drawingClass.start.X + (directionVector.X * (acDist / abDist))),
+                        (int) (drawingClass.start.Y + (directionVector.Y * (acDist / abDist))));
+
+                rot = Math.cos(abDist / acDist);
+
+                leftBorderNewEnd = Draw.matRotatePoint(drawingClass.start, leftBorderNewEnd, rot);
+                rightBorderNewEnd = Draw.matRotatePoint(drawingClass.start, rightBorderNewEnd, -rot);
+                Line newLeftBorderNewLine = new Line(TRACK.borderTwo.get(s).E, leftBorderNewEnd);
+                Line newRightBorderNewLine = new Line(TRACK.borderOne.get(t).E, rightBorderNewEnd);
+                TRACK.borderTwo.add(newLeftBorderNewLine);
+                TRACK.borderOne.add(newRightBorderNewLine);
+                TRACK.borders.add(newLeftBorderNewLine);
+                TRACK.borders.add(newRightBorderNewLine);
+
                 drawingClass.start = drawingClass.end;
-            }
-            if (action == GLFW_MOUSE_BUTTON_1) {
-                DoubleBuffer b1 = BufferUtils.createDoubleBuffer(1);
-                DoubleBuffer b2 = BufferUtils.createDoubleBuffer(1);
-                glfwGetCursorPos(window, b1, b2);
-//                LOGGER.info("x : " + b1.get(0) + ", y = " + b2.get(0));
             }
         });
     }
@@ -267,9 +297,9 @@ public class Display {
         DoubleBuffer b1 = BufferUtils.createDoubleBuffer(1);
         DoubleBuffer b2 = BufferUtils.createDoubleBuffer(1);
         glfwGetCursorPos(window, b1, b2);
-        int x = (int) b1.get(0) - (GLOBAL_HORIZONTAL_DISPLACEMENT * 1);
-        int y = (int) b2.get(0) - (GLOBAL_VERTICAL_DISPLACEMENT * 1);
-//        LOGGER.info("PRESSED: x : " + x + ", y = " + y);
+        int x = (int) b1.get(0) - GLOBAL_HORIZONTAL_DISPLACEMENT;
+        int y = (int) b2.get(0) - GLOBAL_VERTICAL_DISPLACEMENT;
+
         return new Point(x, y);
     }
 
@@ -284,72 +314,77 @@ public class Display {
     static class drawingClass {
         public static Point start = null;
         public static Point end = null;
+
     }
 
-    public double getRotationFromPoints(Point b, Point c) {
-
-        LOGGER.info("B: {}, {}", b.X, b.Y);
-        LOGGER.info("C: {}, {}", c.X, c.Y);
-
-        // Vertical line
-        if (b.X == c.X) {
-            if (b.Y > c.Y) {
-                LOGGER.info("Going up");
-                return 1 * Math.PI;
-            } else {
-                LOGGER.info("Going down");
-                return 0 * Math.PI;
-            }
-        }
-        // Horizontal line
-        if (b.Y == c.Y) {
-            if (b.X > c.X) {
-                LOGGER.info("Going left");
-                return 1.5 * Math.PI;
-            } else {
-                LOGGER.info("Going right");
-                return 0.5 * Math.PI;
-            }
-        }
-
-        Point a;
-        double angleRadianB;
-        // Going up and right (1)
-        if (c.X > b.X && c.Y < b.Y) {
-            LOGGER.info("Going up and right");
-            a = new Point(c.X, b.Y);
-            angleRadianB = Math.atan((double) (a.Y - c.Y) / (double) (a.X - b.X));
-            angleRadianB += 0.5 * Math.PI;
-            LOGGER.info("Degrees : {}", angleRadianB * (180/Math.PI));
-        }
-        else
-        //Going up and left (3)
-        if (c.X < b.X && c.Y < b.Y) {
-            LOGGER.info("Going up and left");
-            a = new Point(c.X, b.Y);
-            angleRadianB = Math.atan((double) (a.Y - c.Y) / (double) (b.X - a.X));
-            angleRadianB += 1 * Math.PI;
-            LOGGER.info("Degrees : {}", angleRadianB * (180/Math.PI));
-        }
-        else
-        //Going down and right (7)
-        if (c.X > b.X && c.Y > b.Y) {
-            LOGGER.info("Going down and right");
-            a = new Point(b.X, c.Y);
-            angleRadianB = Math.atan((double) (c.X - a.X) / (double) (a.Y - b.Y));
-            angleRadianB += 0 * Math.PI;
-            LOGGER.info("Degrees : {}", angleRadianB * (180/Math.PI));
-        }
-        else
-        //Going down and left (5)
-        {
-            LOGGER.info("Going down and left");
-            a = new Point(b.X, c.Y);
-            angleRadianB = Math.atan((double) (a.X - c.X) / (double) (a.Y - b.Y));
-            angleRadianB += 1.5 * Math.PI;
-            LOGGER.info("Degrees : {}", angleRadianB * (180/Math.PI));
-        }
-        return angleRadianB;
+    public Point getTwoPointDirectionVector(Point a, Point b) {
+        return new Point(b.X - a.X, b.Y - a.Y);
     }
+
+//    public double getRotationFromPoints(Point b, Point c) {
+//
+//        LOGGER.info("B: {}, {}", b.X, b.Y);
+//        LOGGER.info("C: {}, {}", c.X, c.Y);
+//
+//        // Vertical line
+//        if (b.X == c.X) {
+//            if (b.Y > c.Y) {
+//                LOGGER.info("Going up");
+//                return 1 * Math.PI;
+//            } else {
+//                LOGGER.info("Going down");
+//                return 0 * Math.PI;
+//            }
+//        }
+//        // Horizontal line
+//        if (b.Y == c.Y) {
+//            if (b.X > c.X) {
+//                LOGGER.info("Going left");
+//                return 1.5 * Math.PI;
+//            } else {
+//                LOGGER.info("Going right");
+//                return 0.5 * Math.PI;
+//            }
+//        }
+//
+//        Point a;
+//        double angleRadianB;
+//        // Going up and right (1)
+//        if (c.X > b.X && c.Y < b.Y) {
+//            LOGGER.info("Going up and right");
+//            a = new Point(c.X, b.Y);
+//            angleRadianB = Math.atan((double) (a.Y - c.Y) / (double) (a.X - b.X));
+////            angleRadianB += 0.5 * Math.PI;
+//            LOGGER.info("Degrees : {}", angleRadianB * (180/Math.PI));
+//        }
+//        else
+//        //Going up and left (3)
+//        if (c.X < b.X && c.Y < b.Y) {
+//            LOGGER.info("Going up and left");
+//            a = new Point(c.X, b.Y);
+//            angleRadianB = Math.atan((double) (a.Y - c.Y) / (double) (b.X - a.X));
+////            angleRadianB += 1 * Math.PI;
+//            LOGGER.info("Degrees : {}", angleRadianB * (180/Math.PI));
+//        }
+//        else
+//        //Going down and right (7)
+//        if (c.X > b.X && c.Y > b.Y) {
+//            LOGGER.info("Going down and right");
+//            a = new Point(b.X, c.Y);
+//            angleRadianB = Math.atan((double) (c.X - a.X) / (double) (a.Y - b.Y));
+////            angleRadianB += 0 * Math.PI;
+//            LOGGER.info("Degrees : {}", angleRadianB * (180/Math.PI));
+//        }
+//        else
+//        //Going down and left (5)
+//        {
+//            LOGGER.info("Going down and left");
+//            a = new Point(b.X, c.Y);
+//            angleRadianB = Math.atan((double) (a.X - c.X) / (double) (a.Y - b.Y));
+////            angleRadianB += 1.5 * Math.PI;
+//            LOGGER.info("Degrees : {}", angleRadianB * (180/Math.PI));
+//        }
+//        return angleRadianB;
+//    }
 
 }

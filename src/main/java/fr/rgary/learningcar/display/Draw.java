@@ -7,6 +7,8 @@ import fr.rgary.learningcar.trigonometry.Line;
 import fr.rgary.learningcar.trigonometry.Point;
 import org.ejml.simple.SimpleMatrix;
 import org.lwjgl.BufferUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -39,9 +41,10 @@ import static org.lwjgl.stb.STBEasyFont.stb_easy_font_print;
  * Class Draw.
  */
 public class Draw {
+    private static final Logger LOGGER = LoggerFactory.getLogger(Draw.class);
 
     public static int GLOBAL_HORIZONTAL_DISPLACEMENT = 0;
-    public static int GLOBAL_VERTICAL_DISPLACEMENT = 0;
+    public static int GLOBAL_VERTICAL_DISPLACEMENT = 450;
     public static int STATIC_ELEM = 0;
     public static int MOVING_ELEM = 1;
     static Color activeCarColor = new Color(1, 1, 1);
@@ -220,6 +223,9 @@ public class Draw {
     }
 
     public static Point matRotatePoint(Point center, Point point, Double rotation) {
+        if (rotation != 0) {
+            LOGGER.info("Rotation is {} (which is {} in degrees)", rotation, rotation * (180/Math.PI));
+        }
         SimpleMatrix rotMat = getRotationMatrix(rotation);
         SimpleMatrix simpleMatrix = new SimpleMatrix(1, 2, true, new double[]{point.X - center.X, point.Y - center.Y});
         SimpleMatrix result = simpleMatrix.mult(rotMat);

@@ -24,4 +24,11 @@ public class Point {
         return this;
     }
 
+    @Override
+    public String toString() {
+        return "Point{" +
+                "X=" + X +
+                ", Y=" + Y +
+                '}';
+    }
 }
