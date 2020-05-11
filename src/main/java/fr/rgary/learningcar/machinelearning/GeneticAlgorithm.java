@@ -103,7 +103,7 @@ public class GeneticAlgorithm {
         car.updateNumber();
         int m = 0;
         int no_m = 0;
-        car.fitnessValue = -1;
+        car.fitnessValue = 0;
         for (int i = 0; i < car.allThetas.size(); i++) {
             for (int j = 0; j < car.allThetas.get(i).data.length; j++) {
                 if (RANDOM.nextDouble() < MUTATE_CHANGE) {

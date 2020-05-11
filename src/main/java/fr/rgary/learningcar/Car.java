@@ -48,7 +48,7 @@ public class Car implements Comparable<Car> {
     public double rotationRate = Math.PI / 48;
     public double innerSensorRotation = Math.PI / 12;
     public double outerSensorRotation = Math.PI / 6;
-    public float fitnessValue = -1;
+    public float fitnessValue = 0;
     public int number;
 
     public Car() {
@@ -179,6 +179,13 @@ public class Car implements Comparable<Car> {
             }
 //            LOGGER.info("DISTANCE IS {}", distance);
         }
+        Fitness.calcFitness(this);
+        if (this.moveDone > 50 && this.fitnessValue < this.moveDone) {
+            LOGGER.info("Okay I'm reaaaally bad, let's die. (fitness: {}, move: {}", this.fitnessValue, this.moveDone);
+            this.active = false;
+            this.fitnessValue = 0;
+        }
+
 
         return this.sensorDistances;
     }

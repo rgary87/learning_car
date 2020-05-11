@@ -17,6 +17,7 @@ import java.util.List;
 import static fr.rgary.learningcar.base.Constant.CAR_LENGTH;
 import static fr.rgary.learningcar.base.Constant.CAR_WIDTH;
 import static fr.rgary.learningcar.base.Constant.DEBUG_LEVEL;
+import static fr.rgary.learningcar.base.Constant.DRAW_THETA;
 import static fr.rgary.learningcar.base.Constant.FIRST_HIDDEN_LAYER_SIZE;
 import static fr.rgary.learningcar.base.Constant.INPUT_LAYER_SIZE;
 import static org.lwjgl.opengl.GL11.GL_FLOAT;
@@ -49,6 +50,7 @@ public class Draw {
     public static int MOVING_ELEM = 1;
     static Color activeCarColor = new Color(1, 1, 1);
     static Color inactiveCarColor = new Color(1, 0, 0, 1);
+    static List<Line> marks = new ArrayList<>();
     public static List<Line> drawnLines = new ArrayList<>();
 
     public static void drawAnyText(String text, float x, float y, int movingPart) {
@@ -67,15 +69,19 @@ public class Draw {
         track.borders.forEach(Draw::drawLine);
         if (DEBUG_LEVEL > 3) {
             track.fitnessZoneLines.forEach(Draw::drawLine);
+            track.zones.forEach(zone -> drawAnyText(String.valueOf(zone.zoneNumber), zone.center.X, zone.center.Y, MOVING_ELEM));
         }
         Draw.drawnLines.forEach(Draw::drawLine);
+        Draw.marks.forEach(Draw::drawLine);
     }
 
     public static void drawPopulation() {
         for (Car car : Processor.POPULATION) {
             drawCar(car);
         }
-        drawThetaTable();
+        if (DRAW_THETA) {
+            drawThetaTable();
+        }
     }
 
     private static void drawCar(Car car) {
@@ -222,10 +228,19 @@ public class Draw {
         glEnd();
     }
 
+    public static void drawCrossMark(Point center) {
+        marks.add(new Line(
+                new Point(center.X - 15, center.Y - 15),
+                new Point(center.X + 15, center.Y + 15)
+        ));
+        marks.add(new Line(
+                new Point(center.X - 15, center.Y + 15),
+                new Point(center.X + 15, center.Y - 15)
+        ));
+
+    }
+
     public static Point matRotatePoint(Point center, Point point, Double rotation) {
-        if (rotation != 0) {
-            LOGGER.info("Rotation is {} (which is {} in degrees)", rotation, rotation * (180/Math.PI));
-        }
         SimpleMatrix rotMat = getRotationMatrix(rotation);
         SimpleMatrix simpleMatrix = new SimpleMatrix(1, 2, true, new double[]{point.X - center.X, point.Y - center.Y});
         SimpleMatrix result = simpleMatrix.mult(rotMat);

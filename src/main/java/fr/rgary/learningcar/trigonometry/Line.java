@@ -44,4 +44,8 @@ public class Line {
         return null;
     }
 
+    @Override
+    public String toString() {
+        return "{\"S\":" + S.toString() + ", \"E\":" + E.toString() + '}';
+    }
 }

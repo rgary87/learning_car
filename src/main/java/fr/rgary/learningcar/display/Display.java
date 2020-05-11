@@ -10,7 +10,6 @@ import fr.rgary.learningcar.trigonometry.Line;
 import fr.rgary.learningcar.trigonometry.Point;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.glfw.GLFWErrorCallback;
-import org.lwjgl.glfw.GLFWMouseButtonCallback;
 import org.lwjgl.glfw.GLFWVidMode;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.system.MemoryStack;
@@ -22,8 +21,11 @@ import java.nio.FloatBuffer;
 import java.util.Objects;
 
 import static fr.rgary.learningcar.Processor.GENERATION;
+import static fr.rgary.learningcar.base.Constant.DRAW_THETA;
 import static fr.rgary.learningcar.base.Constant.INTER_FRAME_DELAY;
+import static fr.rgary.learningcar.base.Constant.PAUSE;
 import static fr.rgary.learningcar.base.Constant.TRACK;
+import static fr.rgary.learningcar.base.Constant.TRACK_MOUSE;
 import static fr.rgary.learningcar.display.Draw.GLOBAL_HORIZONTAL_DISPLACEMENT;
 import static fr.rgary.learningcar.display.Draw.GLOBAL_VERTICAL_DISPLACEMENT;
 import static fr.rgary.learningcar.display.Draw.STATIC_ELEM;
@@ -32,11 +34,13 @@ import static org.lwjgl.glfw.GLFW.GLFW_KEY_D;
 import static org.lwjgl.glfw.GLFW.GLFW_KEY_DOWN;
 import static org.lwjgl.glfw.GLFW.GLFW_KEY_ESCAPE;
 import static org.lwjgl.glfw.GLFW.GLFW_KEY_LEFT;
+import static org.lwjgl.glfw.GLFW.GLFW_KEY_M;
+import static org.lwjgl.glfw.GLFW.GLFW_KEY_O;
 import static org.lwjgl.glfw.GLFW.GLFW_KEY_P;
 import static org.lwjgl.glfw.GLFW.GLFW_KEY_Q;
 import static org.lwjgl.glfw.GLFW.GLFW_KEY_RIGHT;
+import static org.lwjgl.glfw.GLFW.GLFW_KEY_T;
 import static org.lwjgl.glfw.GLFW.GLFW_KEY_UP;
-import static org.lwjgl.glfw.GLFW.GLFW_MOUSE_BUTTON_1;
 import static org.lwjgl.glfw.GLFW.GLFW_OPENGL_DEBUG_CONTEXT;
 import static org.lwjgl.glfw.GLFW.GLFW_PRESS;
 import static org.lwjgl.glfw.GLFW.GLFW_RELEASE;
@@ -114,6 +118,7 @@ public class Display {
         long prevSecFPS = 0;
         Processor processor = new Processor();
 
+        int infoLineHeight = 15;
 
         while (!glfwWindowShouldClose(window)) {
             glClear(GL_COLOR_BUFFER_BIT);
@@ -122,6 +127,8 @@ public class Display {
 
             if (!Constant.PAUSE) {
                 processor.mainLogicalLoop();
+            } else {
+                Draw.drawAnyText("PAUSED", 15, infoLineHeight * 5, STATIC_ELEM);
             }
             Draw.drawTrack(Constant.TRACK);
             Draw.drawPopulation();
@@ -134,9 +141,10 @@ public class Display {
                 frames = 0;
             }
 
-            Draw.drawAnyText(String.format("%dFPS",prevSecFPS), 15, 45, STATIC_ELEM);
-            Draw.drawAnyText(String.format("%d GEN",GENERATION), 15, 15, STATIC_ELEM);
-            Draw.drawAnyText(String.format("%d ACTIVE",processor.activeCarCount), 15, 30, STATIC_ELEM);
+            Draw.drawAnyText(String.format("%d GEN",GENERATION), 15, infoLineHeight * 1, STATIC_ELEM);
+            Draw.drawAnyText(String.format("%d ACTIVE",processor.activeCarCount), 15, infoLineHeight * 2, STATIC_ELEM);
+            Draw.drawAnyText(String.format("%dFPS",prevSecFPS), 15, infoLineHeight * 3, STATIC_ELEM);
+            Draw.drawAnyText("Mouse is " + (TRACK_MOUSE ? "" : "not ") + "active", 15, infoLineHeight * 4, STATIC_ELEM);
 
             glfwSwapBuffers(window); // swap the color buffers
 
@@ -235,62 +243,80 @@ public class Display {
                     case GLFW_KEY_RIGHT:
                         Draw.GLOBAL_HORIZONTAL_DISPLACEMENT += 10;
                         break;
+                    case GLFW_KEY_M:
+                        TRACK_MOUSE = !TRACK_MOUSE;
+                        break;
+                    case GLFW_KEY_O:
+                        TRACK.printSupplementalLines();
+                        break;
+                    case GLFW_KEY_T:
+                        DRAW_THETA = !DRAW_THETA;
+                        break;
                 }
             }
             if (action == GLFW_REPEAT) {
             }
         });
         glfwSetMouseButtonCallback(window, (window, button, action, mods) -> {
-
-            Color drawingColor = new Color(255, 165, 0);
-            double rot = 0;
-            Point directionVector = null;
-
-            if (action == GLFW_PRESS) {
-                LOGGER.info("mouse pressed");
-                Point mousePos = getMousePoint();
-                if (drawingClass.start == null)
-                    drawingClass.start = mousePos;
+            if (TRACK_MOUSE && action == GLFW_PRESS) {
+                this.saveMouseStart();
             }
-            if (action == GLFW_RELEASE) {
-                LOGGER.info("mouse release");
-                drawingClass.end = getMousePoint();
-                Draw.drawnLines.add(new Line(drawingClass.start, drawingClass.end, drawingColor));
-
-                directionVector = getTwoPointDirectionVector(drawingClass.start, drawingClass.end);
-
-                LOGGER.info("Adding line");
-                Point leftBorderNewEnd;
-                Point rightBorderNewEnd;
-                int s = TRACK.borderTwo.size() - 1;
-                int t = TRACK.borderOne.size() - 1;
-
-                double abDist = Math.hypot((double) drawingClass.end.X - drawingClass.start.X, (double) drawingClass.end.Y - drawingClass.start.Y);
-
-                double bcDist = 50;
-                double acDist = Math.sqrt(Math.pow(abDist, 2) + Math.pow(bcDist, 2));
-                leftBorderNewEnd = new Point(
-                        (int) (drawingClass.start.X + (directionVector.X * (acDist / abDist))),
-                        (int) (drawingClass.start.Y + (directionVector.Y * (acDist / abDist))));
-
-                rightBorderNewEnd = new Point(
-                        (int) (drawingClass.start.X + (directionVector.X * (acDist / abDist))),
-                        (int) (drawingClass.start.Y + (directionVector.Y * (acDist / abDist))));
-
-                rot = Math.cos(abDist / acDist);
-
-                leftBorderNewEnd = Draw.matRotatePoint(drawingClass.start, leftBorderNewEnd, rot);
-                rightBorderNewEnd = Draw.matRotatePoint(drawingClass.start, rightBorderNewEnd, -rot);
-                Line newLeftBorderNewLine = new Line(TRACK.borderTwo.get(s).E, leftBorderNewEnd);
-                Line newRightBorderNewLine = new Line(TRACK.borderOne.get(t).E, rightBorderNewEnd);
-                TRACK.borderTwo.add(newLeftBorderNewLine);
-                TRACK.borderOne.add(newRightBorderNewLine);
-                TRACK.borders.add(newLeftBorderNewLine);
-                TRACK.borders.add(newRightBorderNewLine);
-
-                drawingClass.start = drawingClass.end;
+            if (TRACK_MOUSE && action == GLFW_RELEASE) {
+                this.saveMouseEnd();
             }
         });
+    }
+
+    public static Point MOUSE_START = null;
+    public static Point MOUSE_END = null;
+
+    private void saveMouseEnd() {
+        Color drawingColor = new Color(255, 165, 0);
+        double rot = 0;
+        Point directionVector = null;
+
+        LOGGER.info("mouse release");
+        MOUSE_END = getMousePoint();
+        Draw.drawnLines.add(new Line(MOUSE_START, MOUSE_END, drawingColor));
+        LOGGER.info("Start: {} | End: {}", MOUSE_START, MOUSE_END);
+        Draw.drawCrossMark(MOUSE_START);
+        Draw.drawCrossMark(MOUSE_END);
+
+        directionVector = getTwoPointDirectionVector(MOUSE_START, MOUSE_END);
+
+        LOGGER.info("Adding line");
+        Point leftBorderNewEnd;
+        Point rightBorderNewEnd;
+        int s = TRACK.borderTwo.size() - 1;
+        int t = TRACK.borderOne.size() - 1;
+
+        double abDist = Math.hypot((double) MOUSE_END.X - MOUSE_START.X, (double) MOUSE_END.Y - MOUSE_START.Y);
+        double bcDist = 50;
+        double acDist = Math.sqrt(Math.pow(abDist, 2) + Math.pow(bcDist, 2));
+        leftBorderNewEnd = new Point(
+                (int) (MOUSE_START.X + (directionVector.X * (acDist / abDist))),
+                (int) (MOUSE_START.Y + (directionVector.Y * (acDist / abDist))));
+
+        rightBorderNewEnd = new Point(
+                (int) (MOUSE_START.X + (directionVector.X * (acDist / abDist))),
+                (int) (MOUSE_START.Y + (directionVector.Y * (acDist / abDist))));
+
+        rot = Math.sin(bcDist / acDist);
+
+        leftBorderNewEnd = Draw.matRotatePoint(MOUSE_START, leftBorderNewEnd, rot);
+        rightBorderNewEnd = Draw.matRotatePoint(MOUSE_START, rightBorderNewEnd, -rot);
+        Line newLeftBorderNewLine = new Line(TRACK.borderTwo.get(s).E, leftBorderNewEnd);
+        Line newRightBorderNewLine = new Line(TRACK.borderOne.get(t).E, rightBorderNewEnd);
+        TRACK.addToBorderTwo(newLeftBorderNewLine);
+        TRACK.addToBorderOne(newRightBorderNewLine);
+        MOUSE_START = MOUSE_END;
+    }
+
+    private void saveMouseStart() {
+        LOGGER.info("mouse pressed");
+        Point mousePos = getMousePoint();
+        if (MOUSE_START == null)
+            MOUSE_START = mousePos;
     }
 
     private Point getMousePoint() {
@@ -299,7 +325,6 @@ public class Display {
         glfwGetCursorPos(window, b1, b2);
         int x = (int) b1.get(0) - GLOBAL_HORIZONTAL_DISPLACEMENT;
         int y = (int) b2.get(0) - GLOBAL_VERTICAL_DISPLACEMENT;
-
         return new Point(x, y);
     }
 
@@ -312,8 +337,7 @@ public class Display {
     }
 
     static class drawingClass {
-        public static Point start = null;
-        public static Point end = null;
+
 
     }
 

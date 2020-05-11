@@ -33,7 +33,9 @@ public class Constant {
     public static double MUTATE_CHANGE = 0.5;
 
     public static int DEBUG_LEVEL = 3;
-    public static boolean PAUSE = true;
+    public static boolean PAUSE = false;
+    public static boolean TRACK_MOUSE = false;
+    public static boolean DRAW_THETA = true;
 
     public static int INTER_FRAME_DELAY = 0;
 

@@ -18,7 +18,7 @@ public class Fitness {
         if (carInZone < car.maxZoneEntered || carInZone == -1) {
             LOGGER.warn("U-turns are BAD. You were in zone {} but returned to {}", car.maxZoneEntered, carInZone);
             car.active = false;
-            car.fitnessValue = -1;
+            car.fitnessValue = 0;
             car.maxZoneEntered = carInZone;
             return;
         }

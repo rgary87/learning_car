@@ -16,7 +16,7 @@ public class Processor {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Processor.class);
     public static List<Car> POPULATION;
-    private static int populationSize = 180;
+    private static int populationSize = 80;
     public static int toSelect = populationSize / 3 * 2;
     public Boolean activeCar = true;
     public int activeCarCount = 0;
@@ -32,8 +32,8 @@ public class Processor {
 
     public void mainLogicalLoop() {
         if (activeCar) {
-            Processor.POPULATION.parallelStream().forEach(Car::getSensorsValues);
-            Processor.POPULATION.parallelStream().forEach(Car::moveMe);
+            Processor.POPULATION.parallelStream().filter(Car::isActive).forEach(Car::getSensorsValues);
+            Processor.POPULATION.parallelStream().filter(Car::isActive).forEach(Car::moveMe);
             this.updateActiveCar();
         } else {
             long start = System.nanoTime();
