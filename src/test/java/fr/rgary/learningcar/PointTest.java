@@ -3,7 +3,6 @@ package fr.rgary.learningcar;
 import fr.rgary.learningcar.tracks.JsonToTrack;
 import fr.rgary.learningcar.tracks.Track;
 import fr.rgary.learningcar.trigonometry.Point;
-import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 
@@ -14,13 +13,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  */
 class PointTest {
 
-    @Test
     void track_to_json() throws IOException {
         Track track = JsonToTrack.buildTrack();
         assertEquals(-0.8175d, track.borderOne.get(0).S.X, 0.001d);
     }
 
-    @Test
     void convertMe() {
         Point p1 = new Point(200, 300);
         assertEquals(-0.5, p1.X, 0.001);

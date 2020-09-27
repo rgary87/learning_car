@@ -6,8 +6,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 /**
  * Class Processor.
@@ -16,15 +14,18 @@ public class Processor {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Processor.class);
     public static List<Car> POPULATION;
-    private static int populationSize = 80;
+    private static int populationSize = 500;
     public static int toSelect = populationSize / 3 * 2;
     public Boolean activeCar = true;
     public int activeCarCount = 0;
-    private ExecutorService executorService = Executors.newFixedThreadPool(populationSize);
+//    private ExecutorService executorService = Executors.newFixedThreadPool(populationSize);
     public static int GENERATION = 0;
 
     public Processor() {
-        Processor.POPULATION = new ArrayList<>();
+        if (populationSize < 10) {
+            populationSize = 10;
+        }
+        Processor.POPULATION = new ArrayList<>(populationSize);
         for (int i = 0; i < populationSize; i++) {
             Processor.POPULATION.add(new Car());
         }
@@ -45,19 +46,16 @@ public class Processor {
             GeneticAlgorithm.totalMutateTime = 0;
             GENERATION++;
         }
-
     }
 
     public void updateActiveCar() {
-        boolean b = false;
         this.activeCarCount = 0;
         for (Car car : POPULATION) {
             if (car.isActive()) {
-                b = true;
                 this.activeCarCount++;
             }
         }
-        this.activeCar = b;
+        this.activeCar = activeCarCount > 0;
     }
 
     public List<Car> getPopulation() {

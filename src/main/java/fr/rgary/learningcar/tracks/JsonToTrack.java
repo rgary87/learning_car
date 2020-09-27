@@ -19,7 +19,7 @@ public class JsonToTrack {
         List<String> file;
         Track objectTrackBorder1 = null;
         try {
-            file = Files.readAllLines(Paths.get("src/main/resources/track_1.json"));
+            file = Files.readAllLines(Paths.get("src/main/resources/track_2.json"));
             objectTrackBorder1 = om.readValue(Strings.join(file, ' '), Track.class);
             objectTrackBorder1.init();
         } catch (IOException e) {

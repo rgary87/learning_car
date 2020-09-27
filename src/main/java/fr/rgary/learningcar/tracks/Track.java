@@ -63,14 +63,25 @@ public class Track {
             int m2y = a2y + ((b2y - a2y) / 2);
 
             if (i == 0) {
-                Line firstLine = new Line(supplementalBorderOne.get(i).S, supplementalBorderTwo.get(i).S);
+                Line firstLine = new Line(supplementalBorderTwo.get(i).S, supplementalBorderOne.get(i).S);
                 this.fitnessZoneLines.add(firstLine);
             }
 
-            Line middleLine = new Line(new Point(m1x, m1y), new Point(m2x, m2y));
-            this.fitnessZoneLines.add(middleLine );
-            Line thirdLine = new Line(supplementalBorderOne.get(i).E, supplementalBorderTwo.get(i).E);
-            this.fitnessZoneLines.add(thirdLine);
+            if (i % 2 == 0) {
+                Line middleLine = new Line(new Point(m1x, m1y), new Point(m2x, m2y));
+                this.fitnessZoneLines.add(middleLine);
+                Line middleLineReturn = new Line(new Point(m2x, m2y), new Point(m1x, m1y));
+                this.fitnessZoneLines.add(middleLineReturn);
+                Line thirdLine = new Line(supplementalBorderOne.get(i).E, supplementalBorderTwo.get(i).E);
+                this.fitnessZoneLines.add(thirdLine);
+            } else {
+                Line middleLine = new Line(new Point(m2x, m2y), new Point(m1x, m1y));
+                this.fitnessZoneLines.add(middleLine);
+                Line middleLineReturn = new Line(new Point(m1x, m1y), new Point(m2x, m2y));
+                this.fitnessZoneLines.add(middleLineReturn);
+                Line thirdLine = new Line(supplementalBorderTwo.get(i).E, supplementalBorderOne.get(i).E);
+                this.fitnessZoneLines.add(thirdLine);}
+
         }
 
 
@@ -88,7 +99,7 @@ public class Track {
 
     public int getZoneNumberPerPosition(Point position) {
         for (Zone zone : zones) {
-            if (zone.polygon.contains(position.X, position.Y)) {
+            if (zone.polygon.contains(position.X + 1_000_000, position.Y + 1_000_000)) {
                 return zone.zoneNumber;
             }
         }

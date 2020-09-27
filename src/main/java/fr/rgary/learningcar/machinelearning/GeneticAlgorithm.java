@@ -3,6 +3,7 @@ package fr.rgary.learningcar.machinelearning;
 import fr.rgary.learningcar.Car;
 import fr.rgary.learningcar.Processor;
 import fr.rgary.learningcar.base.PrintUtil;
+import org.ejml.data.DMatrixRMaj;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,17 +27,24 @@ public class GeneticAlgorithm {
 
     public static float prevBestFit = -1;
 
-    private static Car best;
+    public static float maximumDifference = 0;
+    public static boolean initialized = false;
 
-    public GeneticAlgorithm() {
+    public static Car best;
+
+    private GeneticAlgorithm() {
 //        this.polygons = Track.instance.zones;
     }
 
     public static void natureIsBeautiful() {
+        if (!initialized) GeneticAlgorithm.init();
+
         POPULATION.parallelStream().forEach(Fitness::calcFitness);
         Collections.sort(POPULATION);
         PrintUtil.logPopulationNumberAndFitnessAsTable(POPULATION);
         best = POPULATION.get(0);
+        POPULATION.parallelStream().forEach(car -> Fitness.adjustFitnessOnDifference(car, best, maximumDifference));
+        Collections.sort(POPULATION);
         if (best.fitnessValue < prevBestFit) {
             LOGGER.info("What ? ");
         }
@@ -52,8 +60,13 @@ public class GeneticAlgorithm {
     private static Car selectBasedOnFitness(float fitnessTotal) {
         double rand = RANDOM.nextDouble() * fitnessTotal;
         double runningSum = 0;
+        Car prev = null;
         for (Car car : POPULATION) {
             runningSum += car.fitnessValue;
+            if (prev != null) {
+                car.getDifference(prev);
+            }
+            prev = car;
             if (runningSum > rand) {
                 return car;
             }
@@ -115,5 +128,15 @@ public class GeneticAlgorithm {
                 }
             }
         }
+    }
+
+    private static void init() {
+        List<DMatrixRMaj> allThetas = POPULATION.get(0).allThetas;
+        int thetaCount = 0;
+        for (DMatrixRMaj matrixRMaj : allThetas) {
+            thetaCount += matrixRMaj.data.length;
+        }
+        maximumDifference = thetaCount * 2;
+        initialized = true;
     }
 }

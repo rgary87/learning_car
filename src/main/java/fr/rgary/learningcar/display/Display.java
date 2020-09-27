@@ -3,11 +3,17 @@
  */
 package fr.rgary.learningcar.display;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import fr.rgary.learningcar.Car;
 import fr.rgary.learningcar.Processor;
 import fr.rgary.learningcar.base.Constant;
+import fr.rgary.learningcar.dto.AllThetaDTO;
+import fr.rgary.learningcar.dto.ThetaDTO;
+import fr.rgary.learningcar.machinelearning.GeneticAlgorithm;
 import fr.rgary.learningcar.tracks.JsonToTrack;
 import fr.rgary.learningcar.trigonometry.Line;
 import fr.rgary.learningcar.trigonometry.Point;
+import org.ejml.data.DMatrixRMaj;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.glfw.GLFWVidMode;
@@ -16,16 +22,22 @@ import org.lwjgl.system.MemoryStack;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
+import java.io.IOException;
 import java.nio.DoubleBuffer;
 import java.nio.FloatBuffer;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
 
-import static fr.rgary.learningcar.Processor.GENERATION;
+import static fr.rgary.learningcar.Processor.POPULATION;
 import static fr.rgary.learningcar.base.Constant.DRAW_THETA;
 import static fr.rgary.learningcar.base.Constant.INTER_FRAME_DELAY;
-import static fr.rgary.learningcar.base.Constant.PAUSE;
 import static fr.rgary.learningcar.base.Constant.TRACK;
 import static fr.rgary.learningcar.base.Constant.TRACK_MOUSE;
+import static fr.rgary.learningcar.base.Constant.VSYNC;
 import static fr.rgary.learningcar.display.Draw.GLOBAL_HORIZONTAL_DISPLACEMENT;
 import static fr.rgary.learningcar.display.Draw.GLOBAL_VERTICAL_DISPLACEMENT;
 import static fr.rgary.learningcar.display.Draw.STATIC_ELEM;
@@ -41,6 +53,7 @@ import static org.lwjgl.glfw.GLFW.GLFW_KEY_Q;
 import static org.lwjgl.glfw.GLFW.GLFW_KEY_RIGHT;
 import static org.lwjgl.glfw.GLFW.GLFW_KEY_T;
 import static org.lwjgl.glfw.GLFW.GLFW_KEY_UP;
+import static org.lwjgl.glfw.GLFW.GLFW_KEY_V;
 import static org.lwjgl.glfw.GLFW.GLFW_OPENGL_DEBUG_CONTEXT;
 import static org.lwjgl.glfw.GLFW.GLFW_PRESS;
 import static org.lwjgl.glfw.GLFW.GLFW_RELEASE;
@@ -117,6 +130,7 @@ public class Display {
         long frames = 0;
         long prevSecFPS = 0;
         Processor processor = new Processor();
+        this.readBestCar();
 
         int infoLineHeight = 15;
 
@@ -130,8 +144,11 @@ public class Display {
             } else {
                 Draw.drawAnyText("PAUSED", 15, infoLineHeight * 5, STATIC_ELEM);
             }
+            Draw.drawZones();
             Draw.drawTrack(Constant.TRACK);
             Draw.drawPopulation();
+            Draw.drawTheta();
+
 
             frames++;
             if (System.currentTimeMillis() - previous > 1000) {
@@ -141,10 +158,8 @@ public class Display {
                 frames = 0;
             }
 
-            Draw.drawAnyText(String.format("%d GEN",GENERATION), 15, infoLineHeight * 1, STATIC_ELEM);
-            Draw.drawAnyText(String.format("%d ACTIVE",processor.activeCarCount), 15, infoLineHeight * 2, STATIC_ELEM);
-            Draw.drawAnyText(String.format("%dFPS",prevSecFPS), 15, infoLineHeight * 3, STATIC_ELEM);
-            Draw.drawAnyText("Mouse is " + (TRACK_MOUSE ? "" : "not ") + "active", 15, infoLineHeight * 4, STATIC_ELEM);
+
+            Draw.drawInfoTexts(prevSecFPS, processor, infoLineHeight);
 
             glfwSwapBuffers(window); // swap the color buffers
 
@@ -157,7 +172,10 @@ public class Display {
                 e.printStackTrace();
             }
         }
+        saveBestCar();
     }
+
+
 
     private void init() {
         // Setup an error callback. The default implementation
@@ -209,7 +227,7 @@ public class Display {
         // bindings available for use.
         GL.createCapabilities();
         // Enable v-sync
-        glfwSwapInterval(0);
+        glfwSwapInterval(VSYNC);
 
         // Make the window visible
         glfwShowWindow(window);
@@ -218,6 +236,7 @@ public class Display {
 
     private void callBacks() {
         // Setup a key callback. It will be called every time a key is pressed, repeated or released.
+
         glfwSetKeyCallback(window, (window, key, scancode, action, mods) -> {
             if (action == GLFW_RELEASE) {
                 switch (key) {
@@ -226,7 +245,7 @@ public class Display {
                         glfwSetWindowShouldClose(window, true); // We will detect this in the rendering loop
                         break;
                     case GLFW_KEY_D:
-                        Constant.updateDebugLevel();
+                        Constant.DRAW_LEVEL = Constant.DRAW_LEVEL.getNext();
                         break;
                     case GLFW_KEY_P:
                         Constant.PAUSE = !Constant.PAUSE;
@@ -252,6 +271,13 @@ public class Display {
                     case GLFW_KEY_T:
                         DRAW_THETA = !DRAW_THETA;
                         break;
+                    case GLFW_KEY_V:
+                        if (VSYNC == 0) {
+                            VSYNC = 1;
+                        } else {
+                            VSYNC = 0;
+                        }
+                        glfwSwapInterval(VSYNC);
                 }
             }
             if (action == GLFW_REPEAT) {
@@ -328,17 +354,11 @@ public class Display {
         return new Point(x, y);
     }
 
-
     private void windowSizeChanged(long window, int width, int height) {
         glMatrixMode(GL_PROJECTION);
         glLoadIdentity();
         glOrtho(0.0, WIDTH, HEIGHT, 0.0, -1.0, 1.0);
         glMatrixMode(GL_MODELVIEW);
-    }
-
-    static class drawingClass {
-
-
     }
 
     public Point getTwoPointDirectionVector(Point a, Point b) {
@@ -410,5 +430,48 @@ public class Display {
 //        }
 //        return angleRadianB;
 //    }
+    public static void saveBestCar() {
+        saveBestCar("./src/main/resources/best_car.json", GeneticAlgorithm.best);
+    }
+
+    public static void saveBestCar(String fileName, Car best) {
+        if (best == null) return;
+        Collections.sort(POPULATION);
+        List<ThetaDTO> thetas = new ArrayList<>();
+        for (int c = 0; c < 5; c++) {
+            if (c != 0) best = POPULATION.get(c);
+            for (int i = 0; i < best.allThetas.size(); i++) {
+                thetas.add(new ThetaDTO(best.allThetas.get(i).data, best.allThetas.get(i).numRows, best.allThetas.get(i).numCols));
+            }
+        }
+        try {
+            File file = new File(fileName);
+            file.createNewFile();
+            new ObjectMapper().writeValue(file, new AllThetaDTO(thetas));
+        } catch (IOException ignore ) { }
+    }
+
+    private void readBestCar() {
+        try {
+            File file = new File("./src/main/resources/best_car.json");
+            AllThetaDTO bestValues = new ObjectMapper().readValue(file, AllThetaDTO.class);
+
+            for (int savedCars = 0; savedCars < 5; savedCars++) {
+                    POPULATION.get(savedCars).theta1 = new DMatrixRMaj(
+                            bestValues.thetas.get(savedCars * 3 + 0).numRows,
+                            bestValues.thetas.get(savedCars * 3 + 0).numCols, true,
+                            bestValues.thetas.get(savedCars * 3 + 0).data);
+                    POPULATION.get(savedCars).theta2 = new DMatrixRMaj(
+                            bestValues.thetas.get(savedCars * 3 + 1).numRows,
+                            bestValues.thetas.get(savedCars * 3 + 1).numCols, true,
+                            bestValues.thetas.get(savedCars * 3 + 1).data);
+                    POPULATION.get(savedCars).theta3 = new DMatrixRMaj(
+                            bestValues.thetas.get(savedCars * 3 + 2).numRows,
+                            bestValues.thetas.get(savedCars * 3 + 2).numCols, true,
+                            bestValues.thetas.get(savedCars * 3 + 2).data);
+                    POPULATION.get(savedCars).allThetas = new ArrayList<>(Arrays.asList(POPULATION.get(savedCars).theta1, POPULATION.get(savedCars).theta2, POPULATION.get(savedCars).theta3));
+            }
+        } catch (IOException e) { }
+    }
 
 }

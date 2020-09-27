@@ -42,7 +42,7 @@ public class Car implements Comparable<Car> {
     public double rotation = 0;
     public boolean active = true;
     public int moveStep = 5;
-    public int defaultMaxMoveAllowed = 5000;
+    public int defaultMaxMoveAllowed = 50000;
     public int moveDone = 0;
     public int maxZoneEntered = -1;
     public double rotationRate = Math.PI / 48;
@@ -50,6 +50,8 @@ public class Car implements Comparable<Car> {
     public double outerSensorRotation = Math.PI / 6;
     public float fitnessValue = 0;
     public int number;
+    public int laps = 0;
+    public int drawnInactive = 0;
 
     public Car() {
         this.number = getMaxNumberAndIncrement();
@@ -86,6 +88,8 @@ public class Car implements Comparable<Car> {
         this.active = true;
         this.moveDone = 0;
         this.maxZoneEntered = -1;
+        this.drawnInactive = 0;
+        this.laps = 0;
     }
 
     public void moveMe() {
@@ -116,7 +120,7 @@ public class Car implements Comparable<Car> {
         this.rotation -= (this.rotationRate * 2) * (Math.max(0, direction[Constant.CarOrder.TURN_LEFT - 1]));
 
         // MOVE FORWARD
-        this.position = Draw.matRotatePoint(this.position, this.position.clone().moveMe(Math.toIntExact(Math.round(this.moveStep * Math.max(0, direction[Constant.CarOrder.FORWARD - 1])))), this.rotation);
+        this.position = Draw.matRotatePointForCar(this.position, this.position.clone().moveMe(Math.toIntExact(Math.round(this.moveStep * Math.max(0, direction[Constant.CarOrder.FORWARD - 1])))), this.rotation);
     }
 
     //    ###################################################
@@ -132,13 +136,13 @@ public class Car implements Comparable<Car> {
 
         Line sensorFarLeft = new Line(this.position.clone(), new Point(this.position.X, this.position.Y + this.sensorRange));
         Line sensorLeft = new Line(this.position.clone(), new Point(this.position.X, this.position.Y + this.sensorRange));
-        Line sensorFarRight = new Line(this.position.clone(), new Point(this.position.X, this.position.Y + this.sensorRange));
         Line sensorRight = new Line(this.position.clone(), new Point(this.position.X, this.position.Y + this.sensorRange));
+        Line sensorFarRight = new Line(this.position.clone(), new Point(this.position.X, this.position.Y + this.sensorRange));
 
         sensorFarLeft.E = Draw.matRotatePoint(this.position, sensorFarLeft.E, this.rotation - this.outerSensorRotation);
         sensorLeft.E = Draw.matRotatePoint(this.position, sensorLeft.E, this.rotation - this.innerSensorRotation);
-        sensorFarRight.E = Draw.matRotatePoint(this.position, sensorFarRight.E, this.rotation + this.outerSensorRotation);
         sensorRight.E = Draw.matRotatePoint(this.position, sensorRight.E, this.rotation + this.innerSensorRotation);
+        sensorFarRight.E = Draw.matRotatePoint(this.position, sensorFarRight.E, this.rotation + this.outerSensorRotation);
 
         List<Line> sensorsLines = new ArrayList<>(Arrays.asList(
                 sensorFarLeft,
@@ -180,7 +184,7 @@ public class Car implements Comparable<Car> {
 //            LOGGER.info("DISTANCE IS {}", distance);
         }
         Fitness.calcFitness(this);
-        if (this.moveDone > 50 && this.fitnessValue < this.moveDone) {
+        if (this.moveDone > 500 && this.fitnessValue < this.moveDone) {
             LOGGER.info("Okay I'm reaaaally bad, let's die. (fitness: {}, move: {}", this.fitnessValue, this.moveDone);
             this.active = false;
             this.fitnessValue = 0;
@@ -223,5 +227,15 @@ public class Car implements Comparable<Car> {
             return 0;
         return o.fitnessValue > this.fitnessValue ? 1 : -1;
 //        return Math.round(((Car) o).fitnessValue - this.fitnessValue);
+    }
+
+    public float getDifference(Car o) {
+        float accumulator = 0;
+        for (int i = 0; i < this.allThetas.size(); i++) {
+            for (int j = 0; j < this.allThetas.get(i).data.length; j++) {
+                accumulator += Math.abs(this.allThetas.get(i).data[j] - o.allThetas.get(i).data[j]);
+            }
+        }
+        return accumulator;
     }
 }
