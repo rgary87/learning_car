@@ -17,8 +17,34 @@
 	<properties>
 		<java.version>1.8</java.version>
 		<lwjgl.version>3.2.3</lwjgl.version>
-		<lwjgl.natives>natives-windows</lwjgl.natives>
 	</properties>
+
+	<profiles>
+		<profile>
+			<id>lwjgl-natives-linux-amd64</id>
+			<activation>
+				<os>
+					<family>unix</family>
+					<arch>amd64</arch>
+				</os>
+			</activation>
+			<properties>
+				<lwjgl.natives>natives-linux</lwjgl.natives>
+			</properties>
+		</profile>
+		<profile>
+			<id>lwjgl-natives-windows-amd64</id>
+			<activation>
+				<os>
+					<family>windows</family>
+					<arch>amd64</arch>
+				</os>
+			</activation>
+			<properties>
+				<lwjgl.natives>natives-windows</lwjgl.natives>
+			</properties>
+		</profile>
+	</profiles>
 
 	<dependencyManagement>
 		<dependencies>
@@ -151,6 +177,14 @@
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 			</plugin>
+			<plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>exec-maven-plugin</artifactId>
+            <version>3.0.0</version>
+            <configuration>
+                <mainClass>fr.rgary.learningcar.LearningCarApplication</mainClass>
+            </configuration>
+        </plugin>
 		</plugins>
 	</build>
 
