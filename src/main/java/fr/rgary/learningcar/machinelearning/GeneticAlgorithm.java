@@ -3,7 +3,6 @@ package fr.rgary.learningcar.machinelearning;
 import fr.rgary.learningcar.Car;
 import fr.rgary.learningcar.Population;
 import fr.rgary.learningcar.Processor;
-import fr.rgary.learningcar.base.PrintUtil;
 import org.ejml.data.DMatrixRMaj;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,7 +39,7 @@ public class GeneticAlgorithm {
         if (!initialized) GeneticAlgorithm.init();
 
         Collections.sort(CARLIST);
-        PrintUtil.logPopulationNumberAndFitnessAsTable(CARLIST);
+//        PrintUtil.logPopulationNumberAndFitnessAsTable(CARLIST);
         best = Processor.POPULATION.getBest();
         best.selected = true;
         CARLIST.parallelStream().forEach(car -> Fitness.adjustFitnessOnDifference(car, best, maximumDifference));
@@ -90,11 +89,9 @@ public class GeneticAlgorithm {
         Population.selected += 1;
     }
 
-    private static void selection(/*List<Car> localPopulation*/) {
+    private static void selection() {
         float fitnessTotal = Fitness.getTotalFitness();
         while (Population.selected < Processor.toSelect) {
-            LOGGER.warn("Do I REALLY come in here ?");
-//            localPopulation.add(new Car(selectBasedOnFitness(fitnessTotal)));
             selectBasedOnFitness(fitnessTotal);
         }
 

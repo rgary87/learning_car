@@ -23,7 +23,7 @@ public class Fitness {
                 car.laps++;
                 carInZone = ((Constant.TRACK.zones.size()) * car.laps) + carInZone;
             } else {
-                LOGGER.warn("U-turns are BAD. You were in zone {} but returned to {}", car.maxZoneEntered, carInZone);
+//                LOGGER.warn("U-turns are BAD. You were in zone {} but returned to {}", car.maxZoneEntered, carInZone);
                 if (car.maxZoneEntered == 142) {
                     Display.saveBestCar("./src/main/resources/hit_71.json", car);
                 }

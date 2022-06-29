@@ -35,7 +35,7 @@ public class Processor {
             GeneticAlgorithm.natureIsBeautiful();
             Population.CARLIST.parallelStream().forEach(Car::reset);
             activeCar = true;
-            LOGGER.warn("TOTAL TOOK {}ms. {}ms in breed. {}ms in mutate.", (System.nanoTime() - start) / 1_000_000f, GeneticAlgorithm.totalBreedTime / 1_000_000f, GeneticAlgorithm.totalMutateTime / 1_000_000f);
+//            LOGGER.warn("TOTAL TOOK {}ms. {}ms in breed. {}ms in mutate.", (System.nanoTime() - start) / 1_000_000f, GeneticAlgorithm.totalBreedTime / 1_000_000f, GeneticAlgorithm.totalMutateTime / 1_000_000f);
             GeneticAlgorithm.totalBreedTime = 0;
             GeneticAlgorithm.totalMutateTime = 0;
             GENERATION++;

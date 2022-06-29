@@ -171,12 +171,12 @@ public class Car implements Runnable, Comparable<Car> {
             }
 //            LOGGER.info("DISTANCE IS {}", distance);
         }
-//        Fitness.calcFitness(this);
-//        if (this.moveDone > 500 && this.fitnessValue < this.moveDone) {
+        Fitness.calcFitness(this);
+        if (this.moveDone > 500 && this.fitnessValue < this.moveDone) {
 //            LOGGER.info("Okay I'm reaaaally bad, let's die. (fitness: {}, move: {}", this.fitnessValue, this.moveDone);
-//            this.active = false;
-//            this.fitnessValue = 0;
-//        }
+            this.active = false;
+            this.fitnessValue = 0;
+        }
 
         if (this.moveDone > 500) {
             this.deactivate();

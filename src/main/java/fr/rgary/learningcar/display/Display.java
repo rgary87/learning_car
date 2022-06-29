@@ -5,6 +5,7 @@ package fr.rgary.learningcar.display;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import fr.rgary.learningcar.Car;
+import fr.rgary.learningcar.Population;
 import fr.rgary.learningcar.Processor;
 import fr.rgary.learningcar.base.Constant;
 import fr.rgary.learningcar.dto.AllThetaDTO;
@@ -32,7 +33,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
-import static fr.rgary.learningcar.Processor.GENERATION;
 import static fr.rgary.learningcar.Processor.POPULATION;
 import static fr.rgary.learningcar.base.Constant.DRAW_THETA;
 import static fr.rgary.learningcar.base.Constant.INTER_FRAME_DELAY;
@@ -131,12 +131,9 @@ public class Display {
         long frames = 0;
         long prevSecFPS = 0;
         Processor processor = new Processor();
-//        this.readBestCar();
+        this.readBestCar();
 
         int infoLineHeight = 15;
-
-        Long start = System.currentTimeMillis();
-        Long end = 0l;
 
         while (!glfwWindowShouldClose(window)) {
             glClear(GL_COLOR_BUFFER_BIT);
@@ -160,13 +157,6 @@ public class Display {
                 previous = System.currentTimeMillis();
                 prevSecFPS = frames;
                 frames = 0;
-            }
-
-            if (GENERATION == 300) {
-                end = System.currentTimeMillis();
-            }
-            if (GENERATION >= 300) {
-                LOGGER.info("Took {}ms to get to 300 generations", end - start);
             }
 
             Draw.drawInfoTexts(prevSecFPS, processor, infoLineHeight);
@@ -442,6 +432,7 @@ public class Display {
 //    }
     public static void saveBestCar() {
         saveBestCar("./src/main/resources/best_car.json", GeneticAlgorithm.best);
+        LOGGER.info("Saved best car at ./src/main/resources/best_car.json");
     }
 
     public static void saveBestCar(String fileName, Car best) {
@@ -467,21 +458,24 @@ public class Display {
             AllThetaDTO bestValues = new ObjectMapper().readValue(file, AllThetaDTO.class);
 
             for (int savedCars = 0; savedCars < 5; savedCars++) {
-                    POPULATION.CARLIST.get(savedCars).theta1 = new DMatrixRMaj(
+                    Population.CARLIST.get(savedCars).theta1 = new DMatrixRMaj(
                             bestValues.thetas.get(savedCars * 3 + 0).numRows,
                             bestValues.thetas.get(savedCars * 3 + 0).numCols, true,
                             bestValues.thetas.get(savedCars * 3 + 0).data);
-                    POPULATION.CARLIST.get(savedCars).theta2 = new DMatrixRMaj(
+                    Population.CARLIST.get(savedCars).theta2 = new DMatrixRMaj(
                             bestValues.thetas.get(savedCars * 3 + 1).numRows,
                             bestValues.thetas.get(savedCars * 3 + 1).numCols, true,
                             bestValues.thetas.get(savedCars * 3 + 1).data);
-                    POPULATION.CARLIST.get(savedCars).theta3 = new DMatrixRMaj(
+                    Population.CARLIST.get(savedCars).theta3 = new DMatrixRMaj(
                             bestValues.thetas.get(savedCars * 3 + 2).numRows,
                             bestValues.thetas.get(savedCars * 3 + 2).numCols, true,
                             bestValues.thetas.get(savedCars * 3 + 2).data);
-                    POPULATION.CARLIST.get(savedCars).allThetas = new ArrayList<>(Arrays.asList(POPULATION.CARLIST.get(savedCars).theta1, POPULATION.CARLIST.get(savedCars).theta2, POPULATION.CARLIST.get(savedCars).theta3));
+                    Population.CARLIST.get(savedCars).allThetas = new ArrayList<>(Arrays.asList(POPULATION.CARLIST.get(savedCars).theta1, POPULATION.CARLIST.get(savedCars).theta2, POPULATION.CARLIST.get(savedCars).theta3));
             }
-        } catch (IOException e) { }
+            LOGGER.info("Read best car from ./src/main/resources/best_car.json");
+        } catch (IOException e) {
+            LOGGER.info("No best car read");
+        }
     }
 
 }

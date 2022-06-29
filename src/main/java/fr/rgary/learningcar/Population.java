@@ -22,7 +22,7 @@ public class Population {
 
     public void updateBest(Car car) {
         if (car.fitnessValue > highiestFitness) {
-            LOGGER.info("New best car with fitness {}", car.fitnessValue);
+            LOGGER.info("New best car #{} with fitness {} at gen {}", car.number, car.fitnessValue, Processor.GENERATION);
             Population.best = car;
             Population.highiestFitness = car.fitnessValue;
         }

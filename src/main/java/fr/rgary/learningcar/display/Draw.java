@@ -1,6 +1,7 @@
 package fr.rgary.learningcar.display;
 
 import fr.rgary.learningcar.Car;
+import fr.rgary.learningcar.Population;
 import fr.rgary.learningcar.Processor;
 import fr.rgary.learningcar.base.Constant;
 import fr.rgary.learningcar.tracks.Track;
@@ -245,6 +246,8 @@ public class Draw {
 
     public static void drawInfoTexts(long prevSecFPS, Processor processor, int infoLineHeight) {
         int lines = 1;
+        Draw.drawAnyText(String.format("FITNESS: %.2f", Population.highiestFitness), 15, infoLineHeight * lines, STATIC_ELEM);
+        lines++;
         Draw.drawAnyText(String.format("%d GEN",GENERATION), 15, infoLineHeight * lines, STATIC_ELEM);
         lines++;
         Draw.drawAnyText(String.format("%d ACTIVE", processor.activeCarCount), 15, infoLineHeight * lines, STATIC_ELEM);
