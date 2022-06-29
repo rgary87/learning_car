@@ -84,7 +84,7 @@ public class Draw {
 
     public static void drawPopulation() {
         if (DRAW_LEVEL.level < DrawLevelEnum.CAR.level) return;
-        for (Car car : Processor.POPULATION) {
+        for (Car car : Processor.POPULATION.CARLIST) {
             drawCar(car);
         }
     }
@@ -174,13 +174,13 @@ public class Draw {
                 int posXStart = 20 + (i * cellWidth);
                 int posYStart = 820 + (j * cellHeight);
                 drawThetaSquare(new Point(posXStart, posYStart), cellWidth, cellHeight, tableColor);
-                if (Processor.POPULATION.get(0).theta1.data[(i * INPUT_LAYER_SIZE) + j] > 0) {
-                    drawAnyText(String.format("%1.3f", Processor.POPULATION.get(0).theta1.data[(i * INPUT_LAYER_SIZE) + j]),
+                if (Processor.POPULATION.CARLIST.get(0).theta1.data[(i * INPUT_LAYER_SIZE) + j] > 0) {
+                    drawAnyText(String.format("%1.3f", Processor.POPULATION.CARLIST.get(0).theta1.data[(i * INPUT_LAYER_SIZE) + j]),
                             posXStart + cellWidth / 4 + 15, posYStart + cellHeight / 3 + 5,
                             overZeroTextColor,
                             2f, 2f, STATIC_ELEM);
                 } else {
-                    drawAnyText(String.format("%1.3f", Processor.POPULATION.get(0).theta1.data[(i * INPUT_LAYER_SIZE) + j]),
+                    drawAnyText(String.format("%1.3f", Processor.POPULATION.CARLIST.get(0).theta1.data[(i * INPUT_LAYER_SIZE) + j]),
                             posXStart + cellWidth / 4 + 5, posYStart + cellHeight / 3 + 5,
                             underZeroTextColor,
                             2f, 2f, STATIC_ELEM);

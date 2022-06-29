@@ -32,6 +32,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
+import static fr.rgary.learningcar.Processor.GENERATION;
 import static fr.rgary.learningcar.Processor.POPULATION;
 import static fr.rgary.learningcar.base.Constant.DRAW_THETA;
 import static fr.rgary.learningcar.base.Constant.INTER_FRAME_DELAY;
@@ -130,9 +131,12 @@ public class Display {
         long frames = 0;
         long prevSecFPS = 0;
         Processor processor = new Processor();
-        this.readBestCar();
+//        this.readBestCar();
 
         int infoLineHeight = 15;
+
+        Long start = System.currentTimeMillis();
+        Long end = 0l;
 
         while (!glfwWindowShouldClose(window)) {
             glClear(GL_COLOR_BUFFER_BIT);
@@ -158,6 +162,12 @@ public class Display {
                 frames = 0;
             }
 
+            if (GENERATION == 300) {
+                end = System.currentTimeMillis();
+            }
+            if (GENERATION >= 300) {
+                LOGGER.info("Took {}ms to get to 300 generations", end - start);
+            }
 
             Draw.drawInfoTexts(prevSecFPS, processor, infoLineHeight);
 
@@ -436,10 +446,10 @@ public class Display {
 
     public static void saveBestCar(String fileName, Car best) {
         if (best == null) return;
-        Collections.sort(POPULATION);
+        Collections.sort(POPULATION.CARLIST);
         List<ThetaDTO> thetas = new ArrayList<>();
         for (int c = 0; c < 5; c++) {
-            if (c != 0) best = POPULATION.get(c);
+            if (c != 0) best = POPULATION.CARLIST.get(c);
             for (int i = 0; i < best.allThetas.size(); i++) {
                 thetas.add(new ThetaDTO(best.allThetas.get(i).data, best.allThetas.get(i).numRows, best.allThetas.get(i).numCols));
             }
@@ -457,19 +467,19 @@ public class Display {
             AllThetaDTO bestValues = new ObjectMapper().readValue(file, AllThetaDTO.class);
 
             for (int savedCars = 0; savedCars < 5; savedCars++) {
-                    POPULATION.get(savedCars).theta1 = new DMatrixRMaj(
+                    POPULATION.CARLIST.get(savedCars).theta1 = new DMatrixRMaj(
                             bestValues.thetas.get(savedCars * 3 + 0).numRows,
                             bestValues.thetas.get(savedCars * 3 + 0).numCols, true,
                             bestValues.thetas.get(savedCars * 3 + 0).data);
-                    POPULATION.get(savedCars).theta2 = new DMatrixRMaj(
+                    POPULATION.CARLIST.get(savedCars).theta2 = new DMatrixRMaj(
                             bestValues.thetas.get(savedCars * 3 + 1).numRows,
                             bestValues.thetas.get(savedCars * 3 + 1).numCols, true,
                             bestValues.thetas.get(savedCars * 3 + 1).data);
-                    POPULATION.get(savedCars).theta3 = new DMatrixRMaj(
+                    POPULATION.CARLIST.get(savedCars).theta3 = new DMatrixRMaj(
                             bestValues.thetas.get(savedCars * 3 + 2).numRows,
                             bestValues.thetas.get(savedCars * 3 + 2).numCols, true,
                             bestValues.thetas.get(savedCars * 3 + 2).data);
-                    POPULATION.get(savedCars).allThetas = new ArrayList<>(Arrays.asList(POPULATION.get(savedCars).theta1, POPULATION.get(savedCars).theta2, POPULATION.get(savedCars).theta3));
+                    POPULATION.CARLIST.get(savedCars).allThetas = new ArrayList<>(Arrays.asList(POPULATION.CARLIST.get(savedCars).theta1, POPULATION.CARLIST.get(savedCars).theta2, POPULATION.CARLIST.get(savedCars).theta3));
             }
         } catch (IOException e) { }
     }

@@ -1,6 +1,7 @@
 package fr.rgary.learningcar.machinelearning;
 
 import fr.rgary.learningcar.Car;
+import fr.rgary.learningcar.Population;
 import fr.rgary.learningcar.Processor;
 import fr.rgary.learningcar.base.Constant;
 import fr.rgary.learningcar.display.Display;
@@ -34,7 +35,7 @@ public class Fitness {
         }
         car.maxZoneEntered = carInZone;
         car.fitnessValue = Math.max(0, car.maxZoneEntered * 100) - (car.moveDone / 10f) + 450;
-
+        Processor.POPULATION.updateBest(car);
     }
 
     public static void adjustFitnessOnDifference(Car car, Car best, float maximumDifference) {
@@ -44,7 +45,7 @@ public class Fitness {
 
     public static float getTotalFitness() {
         float total = 0;
-        for (Car car : Processor.POPULATION) {
+        for (Car car : Population.CARLIST) {
             total += car.fitnessValue;
         }
         return total;

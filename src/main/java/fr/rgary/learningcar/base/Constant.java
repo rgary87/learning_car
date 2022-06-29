@@ -20,17 +20,17 @@ public class Constant {
     public static final Random RANDOM = new Random();
 
     public class CarOrder {
-        public static final int TURN_LEFT = 1;
-        public static final int TURN_LEFT_SLOW_FORWARD = 4;
-        public static final int FORWARD = 3;
-        public static final int TURN_RIGHT_SLOW_FORWARD = 5;
-        public static final int TURN_RIGHT = 2;
+        public static final int TURN_LEFT = 0;
+        public static final int TURN_LEFT_SLOW_FORWARD = 3;
+        public static final int FORWARD = 2;
+        public static final int TURN_RIGHT_SLOW_FORWARD = 4;
+        public static final int TURN_RIGHT = 1;
     }
 
     public static double MUTATE_INDIVIDUAL_CHANGE = 0.3;
     public static double MUTATE_CHANGE = 0.5;
 
-    public static DrawLevelEnum DRAW_LEVEL = DrawLevelEnum.SENSOR;
+    public static DrawLevelEnum DRAW_LEVEL = DrawLevelEnum.NO_DRAW;
     public static int VSYNC = 0;
     public static boolean PAUSE = false;
     public static boolean TRACK_MOUSE = false;

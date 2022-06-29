@@ -22,12 +22,11 @@ import static fr.rgary.learningcar.base.Constant.INPUT_LAYER_SIZE;
 import static fr.rgary.learningcar.base.Constant.NUM_LABEL;
 import static fr.rgary.learningcar.base.Constant.RANDOM;
 import static fr.rgary.learningcar.base.Constant.SECOND_HIDDEN_LAYER_SIZE;
-import static fr.rgary.learningcar.base.Constant.TRACK;
 
 /**
  * Class Car.
  */
-public class Car implements Comparable<Car> {
+public class Car implements Runnable, Comparable<Car> {
     public static final Logger LOGGER = LoggerFactory.getLogger(Car.class);
     public static int maxNumber = 0;
     public DMatrixRMaj theta1 = new DMatrixRMaj(FIRST_HIDDEN_LAYER_SIZE, INPUT_LAYER_SIZE + 1);
@@ -48,13 +47,13 @@ public class Car implements Comparable<Car> {
     public double rotationRate = Math.PI / 48;
     public double innerSensorRotation = Math.PI / 12;
     public double outerSensorRotation = Math.PI / 6;
-    public float fitnessValue = 0;
+    public float fitnessValue = -1;
     public int number;
     public int laps = 0;
     public int drawnInactive = 0;
+    public boolean selected = false;
 
     public Car() {
-        this.number = getMaxNumberAndIncrement();
         this.startPoint = Track.instance.startPoint;
         this.position = this.startPoint.clone();
         RandomMatrices_DDRM.addUniform(this.theta1, -1, 1, RANDOM);
@@ -63,39 +62,34 @@ public class Car implements Comparable<Car> {
         this.allThetas = new ArrayList<>(Arrays.asList(this.theta1, this.theta2, this.theta3));
     }
 
-    public Car(Car o) {
-        this.number = getMaxNumberAndIncrement();
-        this.startPoint = Track.instance.startPoint;
-        this.position = this.startPoint.clone();
-        this.theta1 = new DMatrixRMaj(o.theta1);
-        this.theta2 = new DMatrixRMaj(o.theta2);
-        this.theta3 = new DMatrixRMaj(o.theta3);
-        this.allThetas = new ArrayList<>(Arrays.asList(this.theta1, this.theta2, this.theta3));
+    public Car(int idx) {
+        this();
+        this.number = idx;
     }
 
-    public synchronized int getMaxNumberAndIncrement() {
-        Car.maxNumber += 1;
-        return Car.maxNumber - 1;
-    }
-
-    public void updateNumber() {
-        this.number = getMaxNumberAndIncrement();
-    }
+//    public Car(Car o) {
+//        this.startPoint = Track.instance.startPoint;
+//        this.position = this.startPoint.clone();
+//        this.theta1 = new DMatrixRMaj(o.theta1);
+//        this.theta2 = new DMatrixRMaj(o.theta2);
+//        this.theta3 = new DMatrixRMaj(o.theta3);
+//        this.allThetas = new ArrayList<>(Arrays.asList(this.theta1, this.theta2, this.theta3));
+//    }
 
     public void reset() {
-        this.position = TRACK.startPoint;
+        this.position = this.startPoint.clone();
         this.rotation = 0;
         this.active = true;
         this.moveDone = 0;
         this.maxZoneEntered = -1;
         this.drawnInactive = 0;
         this.laps = 0;
+        this.selected = false;
+        this.fitnessValue = -1;
     }
 
     public void moveMe() {
-        if (active) {
-            orderPerValues(NeuralNetwork.computeDirection(this.sensorDistances, this.theta1, this.theta2, this.theta3));
-        }
+        orderPerValues(NeuralNetwork.computeDirection(this.sensorDistances, this.theta1, this.theta2, this.theta3));
     }
 
     //    ###################################################
@@ -103,35 +97,30 @@ public class Car implements Comparable<Car> {
     //    ###################################################
     public void orderPerValues(double[] direction) {
 //        LOGGER.info("MOVE CAR");
-        if (!this.active) {
+        if (!this.isActive()) {
             return;
         }
         this.moveDone += 1;
         if (this.moveDone >= this.defaultMaxMoveAllowed) {
             LOGGER.warn("TOO MANY MOVES ({})", this.moveDone);
-            this.active = false;
-            Fitness.calcFitness(this);
+            this.deactivate();
         }
 
         // TURN RIGHT
-        this.rotation += (this.rotationRate * 2) * (Math.max(0, direction[Constant.CarOrder.TURN_RIGHT - 1]));
+        this.rotation += (this.rotationRate * 2) * (Math.max(0, direction[Constant.CarOrder.TURN_RIGHT]));
 
         // TURN LEFT
-        this.rotation -= (this.rotationRate * 2) * (Math.max(0, direction[Constant.CarOrder.TURN_LEFT - 1]));
+        this.rotation -= (this.rotationRate * 2) * (Math.max(0, direction[Constant.CarOrder.TURN_LEFT]));
 
         // MOVE FORWARD
-        this.position = Draw.matRotatePointForCar(this.position, this.position.clone().moveMe(Math.toIntExact(Math.round(this.moveStep * Math.max(0, direction[Constant.CarOrder.FORWARD - 1])))), this.rotation);
+        this.position = Draw.matRotatePointForCar(this.position, this.position.clone().moveMe(Math.toIntExact(Math.round(this.moveStep * Math.max(0, direction[Constant.CarOrder.FORWARD])))), this.rotation);
     }
 
     //    ###################################################
     //    ################# SENSORS UPDATE ##################
     //    ###################################################
-    public List<Double> getSensorsValues() {
+    public void getSensorsValues() {
 //        LOGGER.info("GET SENSORS FOR CAR");
-        if (!this.active) {
-            return this.sensorDistances;
-        }
-
         this.sensorDistances = new ArrayList<>(Arrays.asList(10000d, 10000d, 10000d, 10000d));
 
         Line sensorFarLeft = new Line(this.position.clone(), new Point(this.position.X, this.position.Y + this.sensorRange));
@@ -177,21 +166,27 @@ public class Car implements Comparable<Car> {
 //                LOGGER.warn("WEIRD DISTANCE S: {}", distance);
             }
             if (distance < 30) {
-                this.active = false;
-                Fitness.calcFitness(this);
+                this.deactivate();
                 break;
             }
 //            LOGGER.info("DISTANCE IS {}", distance);
         }
-        Fitness.calcFitness(this);
-        if (this.moveDone > 500 && this.fitnessValue < this.moveDone) {
-            LOGGER.info("Okay I'm reaaaally bad, let's die. (fitness: {}, move: {}", this.fitnessValue, this.moveDone);
-            this.active = false;
-            this.fitnessValue = 0;
+//        Fitness.calcFitness(this);
+//        if (this.moveDone > 500 && this.fitnessValue < this.moveDone) {
+//            LOGGER.info("Okay I'm reaaaally bad, let's die. (fitness: {}, move: {}", this.fitnessValue, this.moveDone);
+//            this.active = false;
+//            this.fitnessValue = 0;
+//        }
+
+        if (this.moveDone > 500) {
+            this.deactivate();
         }
+    }
 
+    public void deactivate() {
+        this.active = false;
+        Fitness.calcFitness(this);
 
-        return this.sensorDistances;
     }
 
     public boolean isActive() {
@@ -226,7 +221,6 @@ public class Car implements Comparable<Car> {
         if (o.fitnessValue == this.fitnessValue)
             return 0;
         return o.fitnessValue > this.fitnessValue ? 1 : -1;
-//        return Math.round(((Car) o).fitnessValue - this.fitnessValue);
     }
 
     public float getDifference(Car o) {
@@ -237,5 +231,21 @@ public class Car implements Comparable<Car> {
             }
         }
         return accumulator;
+    }
+
+    public void resetIfNotSelected() {
+        if (!selected) {
+            this.reset();
+        }
+    }
+
+    @Override
+    public void run() {
+        if (active) {
+            this.getSensorsValues();
+            this.moveMe();
+        } else if (fitnessValue == -1) {
+            Fitness.calcFitness(this);
+        }
     }
 }

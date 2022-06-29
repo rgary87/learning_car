@@ -1,17 +1,17 @@
 package fr.rgary.learningcar.machinelearning;
 
 import fr.rgary.learningcar.Car;
+import fr.rgary.learningcar.Population;
 import fr.rgary.learningcar.Processor;
 import fr.rgary.learningcar.base.PrintUtil;
 import org.ejml.data.DMatrixRMaj;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import static fr.rgary.learningcar.Processor.POPULATION;
+import static fr.rgary.learningcar.Population.CARLIST;
 import static fr.rgary.learningcar.base.Constant.MUTATE_CHANGE;
 import static fr.rgary.learningcar.base.Constant.MUTATE_INDIVIDUAL_CHANGE;
 import static fr.rgary.learningcar.base.Constant.RANDOM;
@@ -39,81 +39,91 @@ public class GeneticAlgorithm {
     public static void natureIsBeautiful() {
         if (!initialized) GeneticAlgorithm.init();
 
-        POPULATION.parallelStream().forEach(Fitness::calcFitness);
-        Collections.sort(POPULATION);
-        PrintUtil.logPopulationNumberAndFitnessAsTable(POPULATION);
-        best = POPULATION.get(0);
-        POPULATION.parallelStream().forEach(car -> Fitness.adjustFitnessOnDifference(car, best, maximumDifference));
-        Collections.sort(POPULATION);
+        Collections.sort(CARLIST);
+        PrintUtil.logPopulationNumberAndFitnessAsTable(CARLIST);
+        best = Processor.POPULATION.getBest();
+        best.selected = true;
+        CARLIST.parallelStream().forEach(car -> Fitness.adjustFitnessOnDifference(car, best, maximumDifference));
+        Collections.sort(CARLIST);
         if (best.fitnessValue < prevBestFit) {
             LOGGER.info("What ? ");
         }
         prevBestFit = best.fitnessValue;
-        List<Car> localPopulation = new ArrayList<>();
-        selection(localPopulation);
-        mutateAll(localPopulation);
-        localPopulation.add(0, best);
-        POPULATION = new ArrayList<>(localPopulation);
-        POPULATION.forEach(Car::reset);
+//        List<Car> localPopulation = new ArrayList<>();
+        selection();//localPopulation);
+        mutateAll();//localPopulation);
+//        localPopulation.add(0, best);
+//        CARLIST = new ArrayList<>(localPopulation);
+        CARLIST.forEach(Car::reset);
     }
 
-    private static Car selectBasedOnFitness(float fitnessTotal) {
+    private static void selectBasedOnFitness(float fitnessTotal) {
         double rand = RANDOM.nextDouble() * fitnessTotal;
         double runningSum = 0;
         Car prev = null;
-        for (Car car : POPULATION) {
+        for (Car car : CARLIST) {
             runningSum += car.fitnessValue;
             if (prev != null) {
                 car.getDifference(prev);
             }
             prev = car;
             if (runningSum > rand) {
-                return car;
+                if (car.selected) {
+                    continue;
+                }
+                car.selected = true;
+                Population.selected += 1;
+                return;
             }
         }
-        throw new InternalError("I HAVE NOTHING TO DO HERE !!!!");
     }
 
-    private static Car breedChild(Car c1, Car c2) {
+    private static void breedChild(Car c1, Car c2, Car toBreed) {
         long start = System.nanoTime();
-        Car child = new Car();
         for (int i = 0; i < c1.allThetas.size(); i++) {
             for (int j = 0; j < c1.allThetas.get(i).data.length; j++) {
-                child.allThetas.get(i).data[j] = RANDOM.nextDouble() < 0.5 ? c1.allThetas.get(i).data[j] : c2.allThetas.get(i).data[j];
+                toBreed.allThetas.get(i).data[j] = RANDOM.nextDouble() < 0.5 ? c1.allThetas.get(i).data[j] : c2.allThetas.get(i).data[j];
             }
         }
         totalBreedTime += (System.nanoTime() - start);
-        return child;
+        toBreed.selected = true;
+        Population.selected += 1;
     }
 
-    private static List<Car> selection(List<Car> localPopulation) {
+    private static void selection(/*List<Car> localPopulation*/) {
         float fitnessTotal = Fitness.getTotalFitness();
-        while (localPopulation.size() < Processor.toSelect) {
-            localPopulation.add(new Car(selectBasedOnFitness(fitnessTotal)));
+        while (Population.selected < Processor.toSelect) {
+            LOGGER.warn("Do I REALLY come in here ?");
+//            localPopulation.add(new Car(selectBasedOnFitness(fitnessTotal)));
+            selectBasedOnFitness(fitnessTotal);
         }
-        while (localPopulation.size() < POPULATION.size() - 1) {
-            int i = RANDOM.nextInt(POPULATION.size());
-            int j = RANDOM.nextInt(POPULATION.size());
-            while (j == i) {
-                j = RANDOM.nextInt(POPULATION.size());
-            }
-            Car firstParent = POPULATION.get(i);
-            Car secondParent = POPULATION.get(j);
 
-            Car child = breedChild(firstParent, secondParent);
-            localPopulation.add(child);
+        CARLIST.parallelStream().forEach(Car::resetIfNotSelected);
+        Collections.sort(CARLIST);
+
+        while (true) {
+            Car availableCar = Population.getAvailableCar();
+            if (availableCar == null) break;
+            int i = RANDOM.nextInt(Processor.toSelect);
+            int j = i;
+            while (j == i) {
+                j = RANDOM.nextInt(Processor.toSelect);
+            }
+            Car firstParent = CARLIST.get(i);
+            Car secondParent = CARLIST.get(j);
+
+            breedChild(firstParent, secondParent, availableCar);
         }
-        return localPopulation;
     }
 
-    private static void mutateAll(List<Car> localPopulation) {
+    private static void mutateAll() {
         long start = System.nanoTime();
-        localPopulation.parallelStream().filter(o -> RANDOM.nextDouble() < MUTATE_INDIVIDUAL_CHANGE).forEach(GeneticAlgorithm::mutate);
+        CARLIST.parallelStream().forEach(GeneticAlgorithm::mutate);
         totalMutateTime += (System.nanoTime() - start);
     }
 
     private static void mutate(Car car) {
-        car.updateNumber();
+        if (RANDOM.nextDouble() > MUTATE_INDIVIDUAL_CHANGE || !car.selected || car.number == Population.getBest().number) return;
         int m = 0;
         int no_m = 0;
         car.fitnessValue = 0;
@@ -131,7 +141,7 @@ public class GeneticAlgorithm {
     }
 
     private static void init() {
-        List<DMatrixRMaj> allThetas = POPULATION.get(0).allThetas;
+        List<DMatrixRMaj> allThetas = CARLIST.get(0).allThetas;
         int thetaCount = 0;
         for (DMatrixRMaj matrixRMaj : allThetas) {
             thetaCount += matrixRMaj.data.length;
